@@ -9,7 +9,7 @@
 	 cout<<"How many numbers would you like to have on your list?"<<endl;
 	 cin>>n;
 	 int *list = new int [n];
-	 cout<<"Please enter the inetegrs."<<endl;
+	 cout<<"Please enter the integers."<<endl;
 	 for(i = 0; i < n; i++)
 	 {
 		 cin>>list[i];
