@@ -6,7 +6,7 @@ using namespace std;
 
 int main()
 {
-	int i = 0, n = 0, j = 0, tmp = 0;
+	int i = 0, n = 0, j = 0, k = 0, tmp = 0;
 	char ch;
 	srand(time(NULL)); // initalizes seed value 
 	cout<<"How many numbers would you like to have on your list?"<<endl;
@@ -29,11 +29,14 @@ int main()
 		cin>>ch;
 		if(ch != 's')
 			break;
-		i = rand() % n; // selects two random positions
-		j = rand() % n; // more positions can be chosen for better shuffling
-		tmp = list[i];
-		list[i] = list[j];
-		list[j] = tmp;
+		for(k = 0; k < 3; k++) // shuffles the list three times
+		{			
+			i = rand() % n; // selects two random positions
+			j = rand() % n; 
+			tmp = list[i];
+			list[i] = list[j];
+			list[j] = tmp;
+		}
 		cout<<"The shuffled list is ";
 		for(i = 0; i < n; i++)
 		{
