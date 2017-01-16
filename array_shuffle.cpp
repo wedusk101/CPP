@@ -46,4 +46,4 @@ int main()
 		cout<<"Enter s to shuffle again. Enter q to quit."<<endl;		
 	}
 	return 0;	 
-}
+} // end
