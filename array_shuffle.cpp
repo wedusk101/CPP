@@ -27,7 +27,7 @@ int main()
 	while(1)
 	{
 		cin>>ch;
-		if(ch != 's')
+		if(ch != 's') // shuffles the list every time the user enters s
 			break;
 		for(k = 0; k < 3; k++) // shuffles the list three times
 		{			
