@@ -87,11 +87,9 @@ void Bank::authenticate()
 				exit(EXIT_SUCCESS);						
 		}
 	}
-	
 	else
 	{
 		cout<<"Incorrect pin."<<endl;
 		exit(EXIT_SUCCESS);
-	}
-	
+	}	
 }
