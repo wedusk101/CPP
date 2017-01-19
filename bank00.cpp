@@ -41,8 +41,11 @@ void Bank::withdraw()
 	double amount = 0.0;
 	cout<<"Please enter the amount."<<endl;
 	cin>>amount;
-	balance -= amount;
-	cout<<"New balance is $"<<balance<<endl;
+	if(amount > balance)
+		cout<<"Withdrawal amount cannot be greater than the available balance."<<endl;
+	else
+		balance -= amount;
+	cout<<"Available balance is $"<<balance<<endl;
 	cout<<"Thank you."<<endl;
 }
 
