@@ -29,7 +29,7 @@ int main()
 		cin>>ch;
 		if(ch != 's') // shuffles the list every time the user enters s
 			break;
-		for(k = 0; k < n; k++) // shuffles the list three times
+		for(k = 0; k < n; k++) // shuffles the list n times
 		{			
 			i = rand() % n; // selects two random positions
 			j = rand() % n; 
