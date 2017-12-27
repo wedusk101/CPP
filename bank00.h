@@ -4,6 +4,8 @@
 #ifndef BANK00_H_
 #define BANK00_H_
 
+#include <string>
+
 class Bank
 {
 	private:
