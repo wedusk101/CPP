@@ -46,5 +46,6 @@ int main()
 		cout<<"Enter s to shuffle again. Enter q to quit."<<endl;		
 	}
 	cout<<"Thank you."<<endl;
+	delete list;
 	return 0;	 
 } // end
