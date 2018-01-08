@@ -20,9 +20,8 @@ class Vector
 		double getCompX() const { return x; }
 		double getCompY() const { return y; }
 		double getCompZ() const { return z; }
-		
-		double magnitude();
-		double dotProduct(Vector v);
+		double magnitude() const;
+		double dotProduct(Vector v) const;
 		void display() const;
 };
 #endif

@@ -41,12 +41,12 @@ void Vector::setCompZ(double k)
 	z = k;
 }
 
-double Vector::magnitude()
+double Vector::magnitude() const
 {
 	return sqrt(x*x + y*y + z*z);
 }
 
-double Vector::dotProduct(Vector v)
+double Vector::dotProduct(Vector v) const
 {
 	return x*v.getCompX() + y*v.getCompY() + z*v.getCompZ();
 }
