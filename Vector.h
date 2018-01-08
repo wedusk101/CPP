@@ -23,7 +23,6 @@ class Vector
 		
 		double magnitude();
 		double dotProduct(Vector v);
-		void display();
-		
+		void display() const;
 };
 #endif

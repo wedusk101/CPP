@@ -51,7 +51,7 @@ double Vector::dotProduct(Vector v)
 	return x*v.getCompX() + y*v.getCompY() + z*v.getCompZ();
 }
 
-void Vector::display()
+void Vector::display() const
 {
 	cout<<x<<"i + "<<y<<"j + "<<z<<"k"<<endl;
 }
