@@ -15,8 +15,6 @@ int main()
 	std::cin>>samples;
 	max = samples * samples; // square of the radius
 	start = std::clock();
-	//omp_set_num_threads(2);
-	//#pragma omp parallel for shared(count)
 	for(long i = 0; i < max; i++) // sampling
 	{
 		long long x = rand() % samples + 1;
