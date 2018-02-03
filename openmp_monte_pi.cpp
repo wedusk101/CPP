@@ -19,7 +19,7 @@ int main()
 	max = samples * samples; // square of the radius = total number of samples
 	omp_set_num_threads(num_of_threads);
 	start = omp_get_wtime();
-	#pragma omp parallel for firstprivate(x,y) reduction(+:count)
+	#pragma omp parallel for private(x,y) reduction(+:count)
 	for(long long i = 0; i < max; i++) // sampling
 	{	
 		x = rand() % samples + 1;
