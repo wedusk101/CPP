@@ -14,10 +14,10 @@ int main()
 		try
 		{
 			if(input < 0)
-				throw std::runtime_error("Natural numbers cannot be less than zero!");
+				throw std::out_of_range("Natural numbers cannot be less than zero!");
 			val.push_back(input);
 		}
-		catch(std::runtime_error err)
+		catch(std::out_of_range err)
 		{
 			std::cout<<err.what()<<std::endl;
 			std::cout<<"Try again? (Y/N)"<<std::endl;
