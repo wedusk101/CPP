@@ -6,7 +6,7 @@
 struct Data
 {
 	int x;
-	//d::string word;
+	//d::string word; // this code segfaults for string variables
 	double val;
 	
 	//Data() : x(0), word("Empty"), val(0.0) {}
