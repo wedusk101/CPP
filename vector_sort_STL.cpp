@@ -10,7 +10,7 @@ struct Dictionary
 	int value;
 };
 
-bool sortByKey(const Dictionary &a, const Dictionary &b)
+bool sortByVal(const Dictionary &a, const Dictionary &b)
 {
 	return a.value <= b. value;
 }
@@ -27,7 +27,7 @@ int main()
 	}
 	for(auto i : list)
 		std::cout << "Key: " << i.key << " Value: " << i.value << std::endl;
-	std::sort(list.begin(), list.end(), sortByKey);
+	std::sort(list.begin(), list.end(), sortByVal);
 	std::cout << "Sorted result is: " << std::endl;
 	for(auto i : list)
 		std::cout << "Key: " << i.key << " Value: " << i.value << std::endl;
