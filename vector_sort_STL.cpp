@@ -19,6 +19,7 @@ int main()
 {
 	Dictionary pair;
 	std::vector<Dictionary> list;
+	std::cout << "Please enter as many string-integer key-value pairs as you like." << std::endl;
 	while(getline(std::cin, pair.key) && std::cin >> pair.value)
 	{
 		std::cin.clear();
