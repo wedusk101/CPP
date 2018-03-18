@@ -6,7 +6,7 @@
 struct Data
 {
 	int x;
-	std::string word; // this code segfaults for string variables
+	std::string word; 
 	double val;
 	
 	Data() : x(0), word("Empty"), val(0.0) {}
@@ -41,6 +41,7 @@ int main()
 	std::cout << "Data loaded!\n" << std::endl;
 	
 	std::cout << "The integer entered was " << load.x << "." << std::endl;
+	// check for the # delimiter here
 	std::cout << "The string entered was " << load.word << "." << std::endl;
 	std::cout << "The real no. entered was " << load.val << "." << std::endl;
 	std::cout << "Check!" << std::endl;
