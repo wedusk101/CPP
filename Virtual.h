@@ -1,4 +1,4 @@
-//Virtual
+//Virtual.h
 #include <iostream>
 
 #ifndef VIRTUAL__H_
