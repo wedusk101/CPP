@@ -9,7 +9,7 @@ int main()
 	{
 		for(double y = 0; y < 20; y++)
 		{
-			if( y == round(sin(x)) + 4) // sin curve
+			if( y == round(sin(x)) + 4 || y == 4 - round(sin(x))) // sin curve
 				std::cout << "*";
 			else
 				std::cout << " ";
