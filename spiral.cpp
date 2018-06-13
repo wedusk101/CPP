@@ -2,7 +2,7 @@
 
 int main()
 {
-	int order = 0, iStep = 0, jStep = 0, i = 0, j = 0, count = 0, loop = 0;
+	int order = 0, i = 0, j = 0, count = 0;
 	bool left = false, right = false, top = false, bottom = false;
 	std::cout << "Please enter the order of the matrix." << std::endl;
 	std::cin >> order;
