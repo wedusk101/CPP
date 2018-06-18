@@ -38,19 +38,19 @@ bool isPrime(int n)
 	return true;
 }
 
-int getNextPrime(int &p)
+int getNextPrime(int &p) 
 {
 	for( p += 1; ; p++)
 		if(isPrime(p))
 			return p;
 }
 
-void initLUT(int *map, const int &size)
+void initLUT(int *map, const int &size) // initializes the lookup table with consecutive primes
 {
 	int j = 1;
 	for(int i = 0; i <= 127; i++)
 		map[i] = getNextPrime(j);
-	map[32] = 1;
+	map[32] = 1; // we ignore spaces
 }
 
 bool isAnagram(const std::string &first, const std::string &second, int *lookup)
@@ -60,9 +60,5 @@ bool isAnagram(const std::string &first, const std::string &second, int *lookup)
 		firstProduct *= lookup[(int)first[i]];
 	for(int i = 0; i < second.size(); i++)
 		secondProduct *= lookup[(int)second[i]];
-	// std::cout << firstProduct << " " << secondProduct << " " << (int)second[3] << " " << lookup[(int)second[3]] << " " << std::endl;
-	if(firstProduct == secondProduct)
-		return true;
-	else
-		return false;
+	return (firstProduct == secondProduct);
 }
