@@ -51,16 +51,16 @@ void lookNsay(int *arr, int num)
 		while(arr[i] != 0)
 		{
 			// display(arr);
-			currentTerm = arr[i];
+			currentTerm = arr[i]; // infinite loop as arr[1] is initially -1
 			continuousSeqCount = 1; 
-			// std::cout << " Current " << currentTerm <<"\n";
-			while(arr[++i] == currentTerm)
+			std::cout << " Current " << currentTerm <<"\n";
+			while(arr[++i] == currentTerm) // currentTerm is -1 here - infinite loop
 				++continuousSeqCount;
 			arr[j++] = continuousSeqCount;
 			arr[j++] = currentTerm;
 			arr[j] = -1;
-			// std::cout << " Here 57 i j " << i << " " << j <<"\n";
+			// std::cout << " Here 59 i j " << i << " " << j <<"\n";
 		}
-		// std::cout << " Here" <<"\n";		
+		// std::cout << " Here 66" <<"\n";		
 	}
 }
