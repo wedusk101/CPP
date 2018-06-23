@@ -22,7 +22,7 @@ void swap(int**, int**);
 int main()
 {
 	int terms = 0;
-	std::cout << "This program generates the look-and-say sequence." << std::endl;
+	std::cout << "This program generates the look-and-say sequence up to a maximum of 15 terms." << std::endl;
 	std::cout << "Please enter the number of terms to display." << std::endl;
 	std::cin >> terms;
 	std::cout << "\n\nThe sequence is: \n\n" << std::endl;
