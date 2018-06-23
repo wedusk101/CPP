@@ -52,7 +52,6 @@ void lookNsay(int num)
 	arr[0] = 1;
 	while(terms != num)
 	{
-		// swap(arr, seq);
 		display(arr);
 		terms++;
 		i = j = k = continuousSeqCount = 0;
