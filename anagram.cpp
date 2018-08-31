@@ -1,4 +1,4 @@
-/* The following code uses the fundamental theorem of arithmetic to check if two pieces of texts
+/* The following code uses the fundamental theorem of arithmetic to check if two pieces of text
 are anagrams of each other. Please note that the program is case sensitive.*/
 #include <iostream>
 #include <cmath>
