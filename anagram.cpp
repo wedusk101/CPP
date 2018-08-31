@@ -48,7 +48,7 @@ int getNextPrime(int &p)
 void initLUT(int *map, const int &size) // initializes the lookup table with consecutive primes
 {
 	int j = 1;
-	for(int i = 0; i <= 127; i++)
+	for(int i = 0; i < size; i++)
 		map[i] = getNextPrime(j);
 	map[32] = 1; // we ignore spaces
 }
