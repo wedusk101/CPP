@@ -1,4 +1,4 @@
-/*The following code generates the terms of the look-and-say sequence upto 128 digits long.
+/*The following code generates the terms of the look-and-say sequence upto 128 digits long(max 15 terms).
 The first few terms of the sequence are :
 
 1
@@ -45,8 +45,7 @@ void swap(int **a, int **b)
 
 void lookNsay(int num)
 {
-	int continuousSeqCount = 0, i = 0, j = 0, k = 0, currentTerm = 0, terms = 0;
-	bool flag = false;
+	int continuousSeqCount = 0, i = 0, j = 0, currentTerm = 0, terms = 0;
 	int *arr = new int[128]();
 	int *seq = new int[128]();
 	arr[0] = 1;
@@ -54,7 +53,7 @@ void lookNsay(int num)
 	{
 		display(arr);
 		terms++;
-		i = j = k = continuousSeqCount = 0;
+		i = j = continuousSeqCount = 0;
 		while(arr[i] != 0)
 		{
 			currentTerm = arr[i]; 
