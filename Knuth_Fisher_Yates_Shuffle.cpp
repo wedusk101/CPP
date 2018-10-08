@@ -9,18 +9,26 @@ int* shuffle(int*, int);
 int main()
 {
 	int size = 0;
+	char ch;
 	std::cout << "Enter the size of the list." << std::endl;
 	std::cin >> size;
 	int *input = new int[size];
 	std::cout << "Enter the numbers." << std::endl;
 	for(int i = 0; i < size; i++)
 		std::cin >> input[i];
-	int *result = shuffle(input, size);
-    for(int i = 0; i < size; i++)
-		std::cout << result[i] << " ";
-	std::cout << "\n";
+	std::cout<<"Enter s to shuffle the list, q to quit."<< std::endl;
+	while(1)
+	{
+		std::cin>>ch;
+		if(ch != 's') // shuffles the list every time the user enters s
+			break;
+		int *result = shuffle(input, size);
+		for(int i = 0; i < size; i++)
+			std::cout << result[i] << " ";
+		std::cout << "\n";
+		delete [] result;
+	}
 	delete [] input;
-	delete [] result;
 }
 
 void swap(int &a, int &b)
