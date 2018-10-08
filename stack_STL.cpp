@@ -10,7 +10,6 @@ int main()
 	std::cout << "popping..." << std::endl;
 	while(!s.empty())
 	{
-		// val = s.pop();
 		std::cout << s.top() << std::endl;
 		s.pop();
 	}
