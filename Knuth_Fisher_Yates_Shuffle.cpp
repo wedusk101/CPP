@@ -19,7 +19,7 @@ int main()
 	std::cout<<"Enter s to shuffle the list, q to quit."<< std::endl;
 	while(1)
 	{
-		std::cin>>ch;
+		std::cin >> ch;
 		if(ch != 's') // shuffles the list every time the user enters s
 			break;
 		int *result = shuffle(input, size);
@@ -28,6 +28,7 @@ int main()
 		std::cout << "\n";
 		delete [] result;
 	}
+	std::cout << "Thank you.";
 	delete [] input;
 }
 
