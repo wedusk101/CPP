@@ -28,7 +28,7 @@ int main()
 		std::cout << "\n";
 		delete [] result;
 	}
-	std::cout << "Thank you.";
+	std::cout << "Thank you." << std::endl;
 	delete [] input;
 }
 
