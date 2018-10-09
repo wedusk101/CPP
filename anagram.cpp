@@ -3,8 +3,8 @@ are anagrams of each other. Please note that the program is case sensitive.*/
 #include <iostream>
 #include <cmath>
 
-void initLUT(int *loopkup, const int &sizeLUT);
-bool isAnagram(const std::string &a, const std::string &b, int *lookup);
+void initLUT(int*, const int &);
+bool isAnagram(const std::string &, const std::string &, int*);
 bool isPrime(int);
 int getNextPrime(int &);
 
