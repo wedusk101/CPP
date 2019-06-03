@@ -16,7 +16,8 @@ int main()
 	#pragma omp parallel
 	{
 		int id = omp_get_thread_num();
-		for(unsigned int i = 0; i < num_steps; i += NUM_THREADS)
+		int thread_count = omp_get_num_threads();
+		for(unsigned int i = 0; i < num_steps; i += thread_count)
 		{
 			x = (i + 0.5) * step;
 			sum[id] += 4/(double)(1 + x * x);
