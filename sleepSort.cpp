@@ -6,6 +6,8 @@
 void sleepSort(int *, int);
 void printElement(int);
 
+static int minVal = 0;
+
 int main()
 {
 	int size = 0;
@@ -32,7 +34,10 @@ void sleepSort(int *input, int size) // for each element, a new thread is create
 {
 	std::thread sortThreads[size];
 	for(int i = 0; i < size; i++)
-		sortThreads[i] = std::thread(printElement, input[i]);	
+		if(input[i] < minVal)
+			minVal = std::abs(input[i]); // to handle negative numbers
+	for(int i = 0; i < size; i++)
+		sortThreads[i] = std::thread(printElement, input[i] + minVal);	
 	for(int i = 0; i < size; i++)
 		sortThreads[i].join();
 }	
@@ -40,5 +45,5 @@ void sleepSort(int *input, int size) // for each element, a new thread is create
 void printElement(int val)
 {
 	std::this_thread::sleep_for(std::chrono::milliseconds(val));
-	std::cout << val << " ";
+	std::cout << val - minVal<< " ";
 }
