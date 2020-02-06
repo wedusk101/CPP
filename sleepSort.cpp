@@ -46,5 +46,5 @@ void sleepSort(int *input, int size) // for each element, a new thread is create
 void printElement(int val)
 {
 	std::this_thread::sleep_for(std::chrono::milliseconds(val));
-	std::cout << val - minVal<< " ";
+	std::cout << val - minVal << " ";
 }
