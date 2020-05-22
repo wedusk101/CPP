@@ -5,9 +5,10 @@ The consumer thread consumes the resource and then sleeps for a second. How much
 #include <mutex>
 #include <random>
 #include <chrono>
+#include <atomic>
 
 std::mutex resourceMutex;
-size_t resource = 5;
+std::atomic<int> resource(1);
 
 size_t toss(std::default_random_engine &seed)
 {
