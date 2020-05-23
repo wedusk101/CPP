@@ -1,4 +1,4 @@
-/*The following code simulates the Producer-Consumer problem using Standard Library threads. A producer thread produces a shared resource and then sleeps for a second.
+/*The following code simulates the *Unbounded* Producer-Consumer problem using Standard Library threads. A producer thread produces a shared resource and then sleeps for a second.
 The consumer thread consumes the resource and then sleeps for a second. How much of the resource is produced or consumed is dictated by a pseudo-random subroutine.*/
 #include <iostream>
 #include <thread>
