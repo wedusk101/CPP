@@ -8,19 +8,20 @@ The consumer thread consumes the resource and then sleeps for a second. How much
 #include <atomic>
 
 std::mutex resourceMutex;
-std::atomic<int> resource(1);
+std::atomic<int> resource(10);
 
 size_t toss(std::default_random_engine &seed)
 {
 	std::uniform_real_distribution<double> rnd(0.0, 1.0);
 	double trial = rnd(seed);
-	return (trial < 0.5) ? 5 : 10;
+	return static_cast<size_t>(trial * 10);
 }
 
 
 void produce()
 {
-	std::default_random_engine seed;
+	size_t tid = std::hash<std::thread::id>()(std::this_thread::get_id());
+	std::default_random_engine seed(tid + static_cast<uint64_t>(std::chrono::system_clock::to_time_t((std::chrono::system_clock::now()))));
 	while (resource > 0)
 	{
 		std::unique_lock<std::mutex> lock(resourceMutex);
@@ -36,7 +37,8 @@ void produce()
 
 void consume()
 {
-	std::default_random_engine seed;
+	size_t tid = std::hash<std::thread::id>()(std::this_thread::get_id());
+	std::default_random_engine seed(tid + static_cast<uint64_t>(std::chrono::system_clock::to_time_t((std::chrono::system_clock::now()))));
 	while (resource > 0)
 	{
 		std::unique_lock<std::mutex> lock(resourceMutex);
