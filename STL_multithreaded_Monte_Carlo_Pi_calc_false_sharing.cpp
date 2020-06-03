@@ -1,5 +1,5 @@
 /*The following code calculates the approximate value of Pi using Monte Carlo Sampling and utilizes C++ 11 multithreading for performance. Use the
-flag -lpthread during compilation to link the Posix thread library pthreads. This code suffers from false sharing problems.*/ 
+flag -pthread during compilation to link the POSIX thread library pthreads. This code suffers from false sharing problems.*/ 
 #include <iostream>
 #include <random>
 #include <limits>
