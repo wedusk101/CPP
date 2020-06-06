@@ -1,8 +1,8 @@
 /*This piece of code tests out std::pakcahed_task in the Standard Library. Use the flag -pthread to link the POSIX thread library.*/
 #include <functional>
 #include <thread>
-#include <future>
 #include <iostream>
+#include <memory>
 
 struct Foo
 {
@@ -49,7 +49,6 @@ struct Foo
 	}
 };
 
-
 struct ITask
 {
 	enum struct TaskState
@@ -68,26 +67,22 @@ template
 struct Task : public ITask
 {
 	TaskState state;
-	std::packaged_task<T()> job;
+	std::function<T()> job;
 	
-	Task(std::packaged_task<T()> &job_) : state(TaskState::Uninitialized), job(std::move(job_)) {}
+	Task(std::function<T()> &job_) : state(TaskState::Uninitialized), job(std::move(job_)) {}
 	
 	T run()
 	{
 		state = TaskState::Running;
-		std::cout << "Getting future" << std::endl;
-		auto fut = job.get_future();
 		std::cout << "Starting execution..." << std::endl;
-		job();
-		std::cout << "Execution finished" << std::endl;
-		return fut.get();
+		return job();
 	}
 };
 
 int main()
 {
-	Foo f1(7);
-	std::packaged_task<int()> tempTask(std::bind(&Foo::fact, &f1));	
+	Foo f1(15);
+	std::function<int()> tempTask(std::bind(&Foo::fact, &f1));	
 	Task<int> task(std::ref(tempTask));
 	std::thread t1([&] ()
 	{
@@ -96,9 +91,21 @@ int main()
 	});
 	t1.join();
 	
-	Foo f2(6);
-	std::packaged_task<void()> tempTask2(std::bind(&Foo::printFib, &f2));	
+	Foo f2(20);
+	std::function<void()> tempTask2(std::bind(&Foo::printFib, &f2));	
 	Task<void> task2(std::ref(tempTask2));
 	std::thread t2([&] () { task2.run(); });
-	t2.join();
+	t2.join();	
+
+	Foo f3(12);
+	std::function<int()> tempTask3(std::bind(&Foo::fact, &f3));	
+	ITask *tPtr = new Task<int>(std::ref(tempTask3));
+	std::thread t3([&] ()
+	{
+		Task<int> *taskPtr = (Task<int>*)tPtr;
+		int result = taskPtr->run();
+		std::cout << result << std::endl;
+	});
+	t3.join();
+
 }
