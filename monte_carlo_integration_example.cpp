@@ -17,9 +17,9 @@ int main()
 	std::cout << "Please enter the number of samples." << std::endl;
 	std::cin >> samples;
 	for (int i = 0; i < samples; i++)
-	{	double x = 5 * rnd(seed) + 3; // rand between 3 and 8
+	{	
+		double x = 5 * rnd(seed) + 3; // rand between 3 and 8
 		sum += x * x * x + 3 * x;
-	}
-	
+	}	
 	std::cout << "Result: " << (range * sum) / (double)samples << std::endl;
 }
