@@ -60,17 +60,18 @@ int main()
 	std::cout << "Size of size_t: " << sizeof(size_t) << std::endl;
 	std::cout << "CPU cache line size: " << cache_line_size << std::endl; 
 	
-	std::cout<<"Please enter the sample size. Doubling the sample size quadruples the computation time."<<std::endl;
-	std::cin>>samples;
-	std::cout<<"Enter the number of threads to spawn." << std::endl;
-	std::cin>>numThreads;
-		
+	std::cout << "Please enter the sample size. Doubling the sample size quadruples the computation time."<<std::endl;
+	std::cin >> samples;
+	std::cout << "Enter the number of threads to spawn." << std::endl;
+	std::cin >> numThreads;
+	
+	std::cout << "Calculating..." << std::endl;
 	auto start = std::chrono::high_resolution_clock::now();
 	pi = getPi(numThreads, samples);
 	auto stop = std::chrono::high_resolution_clock::now();
 	
-	std::cout<<"Sample size is "<<samples<<"."<<std::endl;
-	std::cout<<std::setprecision(12)<<"Approximate value of Pi is "<<pi<<"." << std::endl;
+	std::cout << "Sample size is " << samples << "." << std::endl;
+	std::cout << std::setprecision(12) << "Approximate value of Pi is " << pi << "." << std::endl;
 	auto diff = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
 	std::cout << "\nTime taken is " << diff.count() << " milliseconds." << std::endl;
 }
