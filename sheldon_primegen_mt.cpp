@@ -111,8 +111,6 @@ int main()
 	for(uint32_t i = 0; i < numThreads; i++) 
 		primeThreads[i].join();
 	
-	// initLUT(terms);
-	
 	for (size_t i = 0; i < max; ++i)
 	{
 		if (isSheldonPrime(i))
