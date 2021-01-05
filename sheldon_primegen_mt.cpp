@@ -33,7 +33,7 @@ struct SheldonPrime
 size_t **primeLUT = NULL;
 constexpr size_t PADDING = 8;
 
-bool isPrime(size_t n) // checks if a number is prime or not
+bool isPrime(size_t n) 
 {
 	size_t i = 0;
 	if(n <= 1)
