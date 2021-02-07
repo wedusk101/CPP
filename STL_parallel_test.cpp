@@ -71,6 +71,6 @@ int main(int argc, char *argv[])
 	stop = std::chrono::high_resolution_clock::now();
 	auto parallel = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
 	
-	std::cout << "Time taken for parallel sort: " << parallel.count() << " milliseconds." <<std::endl;
+	std::cout << "Time taken for parallel sort: " << parallel.count() << " milliseconds.\n" <<std::endl;
 	std::cout << std::setprecision(4) << "Speedup factor: " << (double)serial.count() / (double)parallel.count() << "x\n";
 }
