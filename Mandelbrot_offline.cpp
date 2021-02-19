@@ -160,7 +160,7 @@ int main()
 	std::cin >> MAX_ITR;
 	std::cout << "Enable multithreading? (Y/N)\n";
 	std::cin >> ch;
-	std::cout << "Enable benchmark mode? Disables file output for more accurate performance measurement. (1 = Yes / 2 = No[default])\n";
+	std::cout << "Enable benchmark mode? Disables file output for more accurate performance measurement. (1 = Yes / 0 = No[default])\n";
 	std::cin >> isBenchmark;
 	
 	std::chrono::time_point<std::chrono::high_resolution_clock> start, stop;
