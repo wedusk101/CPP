@@ -219,7 +219,7 @@ void drawMandelbrotSIMD(const int &width, const int &height, int isBenchmark)
 			_const1neg, _mod, _const4, _maskwhile; 
 	
 	// 32-bit signed int registers
-	__m128i _maskwhileitr, _itr, _constmaxitr, _indexi, _const1i;
+	__m128i _maskwhileitr, _itr, _constmaxitr, _indexi, _inc1i, _const1i;
 	// __m128i _widthi = _mm_setr_epi32(width, width, width, width);
 	
 	_const1neg = _mm_set1_ps(-1.0);
@@ -241,6 +241,8 @@ void drawMandelbrotSIMD(const int &width, const int &height, int isBenchmark)
 		
 		for (int x = 0; x < width; x += 4) // x axis of the image
 		{
+			_inc1i = _const1i; // while loop iteration condition
+				
 			__m128i _xi = _mm_setr_epi32(x + 3, x + 2, x + 1, x);
 			__m128 _xf = _mm_setr_ps((float)x + 3, (float)x + 2, (float)x + 1, (float)x);
 			
@@ -277,7 +279,7 @@ void drawMandelbrotSIMD(const int &width, const int &height, int isBenchmark)
 			
 			_maskwhile = _mm_cmple_ps(_mod, _const4); // zr * zr + zi * zi <= 4.0
 			_maskwhileitr = _mm_cmplt_epi32(_itr, _constmaxitr); // itr < MAX_ITR			
-			_maskwhile = _mm_and_ps(_maskwhile, _mm_castsi128_ps(_maskwhileitr)); // (zr * zr + zi * zi <= 2 * 2 && itr < MAX_ITR)
+			_maskwhile = _mm_and_ps(_maskwhile, _mm_castsi128_ps(_maskwhileitr)); // (zr * zr + zi * zi <= 4.0 && itr < MAX_ITR)
 			
 			while (zr * zr + zi * zi <= 2 * 2 && itr < MAX_ITR)
 			{
@@ -293,8 +295,10 @@ void drawMandelbrotSIMD(const int &width, const int &height, int isBenchmark)
 				// _zi = _mm_fmadd_ps(_zi, _const2, _ci); // No FMA on my Nehalem CPU
 				_zi = _mm_mul_ps(_zi, _const2);
 				_zi = _mm_add_ps(_zi, _ci);
-								
-				itr++;
+				
+
+				_inc1i = _mm_and_ps(_maskwhile, _inc)
+				// _itr
 			}
 			if (itr < MAX_ITR)
 				frameBuffer[index] = BLACK;
