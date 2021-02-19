@@ -214,12 +214,23 @@ void drawMandelbrotSIMD(const int &width, const int &height, int isBenchmark)
 	Color3f *frameBuffer = new Color3f[bufferSize];
 	float invW = (1./ width) * 3.5, invH = (1./ height) * 2;
 	
-	__m128 _zr, _zi, _cr, _ci, _a, _b, _zr2, _zi2, _const2, _invw, _invh, _const2p5neg, _const1neg; 
-	__m128i _widthi = _mm_setr_epi32(width, width, width, width);
+	// 32-bit float registers
+	__m128 _zr, _zi, _cr, _ci, _a, _b, _zr2, _zi2, _const2, _invw, _invh, _const2p5neg,
+			_const1neg, _mod, _const4, _maskwhile; 
+	
+	// 32-bit signed int registers
+	__m128i _maskwhileitr, _itr, _constmaxitr, _indexi, _const1i;
+	// __m128i _widthi = _mm_setr_epi32(width, width, width, width);
 	
 	_const1neg = _mm_set1_ps(-1.0);
 	_const2 = _mm_set1_ps(2.0);
+	_const4 = _mm_set1_ps(4.0);
 	_const2p5neg = _mm_set1_ps(-2.5);
+	
+	 _constmaxitr = _mm_set1_epi32(MAX_ITR);
+	_itr = _mm_set1_epi32(0);
+	_const1i = _mm_set1_epi32(1);
+	
 	_invw = _mm_set1_ps(invW);
 	_invh = _mm_set1_ps(invH);
 	
@@ -233,8 +244,8 @@ void drawMandelbrotSIMD(const int &width, const int &height, int isBenchmark)
 			__m128i _xi = _mm_setr_epi32(x + 3, x + 2, x + 1, x);
 			__m128 _xf = _mm_setr_ps((float)x + 3, (float)x + 2, (float)x + 1, (float)x);
 			
-			__m128i _yi = _mm_setr_epi32(y, y, y, y);
-			__m128 _yf = _mm_setr_ps((float)y, (float)y, (float)y, (float)y);			
+			__m128i _yi = _mm_set1_epi32(y);
+			__m128 _yf = _mm_set1_ps((float)y);			
 			
 			
 			int index = y * width + x;
@@ -244,8 +255,7 @@ void drawMandelbrotSIMD(const int &width, const int &height, int isBenchmark)
 			int index2 = yw + x + 2; // y * width + (x + 2)
 			int index3 = yw + x + 3; // y * width + (x + 3)
 			
-			__m128i _indexi = _mm_setr_epi32(index3, index2, index1, index0); // store set of 4 packed consecutive indices
-			// _indexi = _mm_add_epi32(_indexi, _xi);
+			_indexi = _mm_setr_epi32(index3, index2, index1, index0); // store set of 4 packed consecutive indices
 			
 			int itr = 0;			
 			float zr = 0, zi = 0, cr = 0, ci = 0;	
@@ -263,6 +273,11 @@ void drawMandelbrotSIMD(const int &width, const int &height, int isBenchmark)
 			
 			_zr2 = _mm_mul_ps(_zr, _zr); // zr * zr
 			_zi2 = _mm_mul_ps(_zi, _zi); // zi * zi
+			_mod = _mm_add_ps(_zr2, _zi2); // zr * zr + zi * zi
+			
+			_maskwhile = _mm_cmple_ps(_mod, _const4); // zr * zr + zi * zi <= 4.0
+			_maskwhileitr = _mm_cmplt_epi32(_itr, _constmaxitr); // itr < MAX_ITR			
+			_maskwhile = _mm_and_ps(_maskwhile, _mm_castsi128_ps(_maskwhileitr)); // (zr * zr + zi * zi <= 2 * 2 && itr < MAX_ITR)
 			
 			while (zr * zr + zi * zi <= 2 * 2 && itr < MAX_ITR)
 			{
