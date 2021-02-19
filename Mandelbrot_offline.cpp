@@ -22,9 +22,10 @@ the Mandelbrot set bounds, then the given complex number C is said to be a part 
 
 The Mandelbrot set is what is known as a fractal pattern. It has repeating patterns visible upon zooming and is self-similar. It is named after the mathematician
 Benoit Mandelbrot. It is the most well-known fractal. Computing the Mandelbrot used to be a very compute intensive task to perform once. Nowadays, it can be trivially 
-computed by even processors in smart watches. For fun, there is a simple multithreaded implementation provided here using OpenMP. This is an offline variant of this algorithm. 
-The multithreading should show speed ups at very high resolutions only. Otherwise, the overhead of creating the threads might be too high. The bottleneck in this program is the
-disk access for writing out the rendered buffer to file, especially at lower resolutions.
+computed by even processors in smart watches. For fun, there are simple multithreaded implementations provided here using OpenMP and C++ Stand Library threads.
+This is an offline variant of this algorithm. The multithreading should show speed ups at very high resolutions only. Otherwise, the overhead
+of creating the threads might be too high. The bottleneck in this program is the disk access for writing out the rendered buffer to file,
+especially at lower resolutions.
 
 
 To know more about the Mandelbrot set please refer to https://en.wikipedia.org/wiki/Mandelbrot_set
@@ -125,8 +126,9 @@ struct Complex // class to support Complex numbers
 	}
 };
 
-void drawMandelbrot(const int &, const int &);
-void drawMandelbrotMT(const int &, const int &);
+void drawMandelbrot(const int &, const int &, int);
+void drawMandelbrotOMP(const int &, const int &, int);
+void drawMandelbrotMT(const int &, const int &, int);
 double getMappedScaleX(const int &, const int &); // maps pixel values in the X direction of screen space between (-2.5, 1)
 double getMappedScaleY(const int &, const int &); // maps pixel values in the Y direction of screen space between (-1, 1)
 void evalMandel(Complex &, const Complex &);
@@ -148,29 +150,69 @@ uint32_t MAX_ITR = 0;
 
 int main()
 {
-	int width = 0, height = 0;
-	char ch = ' ';
-	printf("This program renders the Mandelbrot set in a non real-time context.\n");
-	printf("Please enter the desired resolution in pixels. Width, followed by height.\n");
-	scanf("%d%d", &width, &height);
-	printf("Please enter the desired number of iterations to calculate the Mandelbrot set.\n");
-	scanf(" %d", &MAX_ITR);
-	printf("Enable multithreading? (Y/N)\n");
-	scanf(" %c", &ch);
-	auto start = std::chrono::high_resolution_clock::now();
+	int width = 0, height = 0, isBenchmark = 0;
+	char ch = ' ';	
+	std::cout << "This program renders the Mandelbrot set in a non real-time context.\n";
+	std::cout << "Please enter the desired resolution in pixels. Width, followed by height.\n";
+	std::cin >> width;
+	std::cin >> height;
+	std::cout << "Please enter the desired number of iterations to calculate the Mandelbrot set.\n";
+	std::cin >> MAX_ITR;
+	std::cout << "Enable multithreading? (Y/N)\n";
+	std::cin >> ch;
+	std::cout << "Enable benchmark mode? Disables file output for more accurate performance measurement. (1 = Yes / 2 = No[default])\n";
+	std::cin >> isBenchmark;
+	
+	std::chrono::time_point<std::chrono::high_resolution_clock> start, stop;
+	
 	if (ch == 'y' || ch == 'Y')
-		drawMandelbrotMT(width, height);
+	{		
+		std::cout << "Use OpenMP? (Y/N)\n";
+		std::cin >> ch;
+		if (ch == 'y' || ch == 'Y')
+		{
+			std::cout << "Using OpenMP for parallelism.\n";
+			start = std::chrono::high_resolution_clock::now();
+			drawMandelbrotOMP(width, height, isBenchmark);
+			stop = std::chrono::high_resolution_clock::now();
+		}
+		else
+		{
+			std::cout << "Using STL threads for parallelism.\n";
+			start = std::chrono::high_resolution_clock::now();
+			drawMandelbrotMT(width, height, isBenchmark);	
+			stop = std::chrono::high_resolution_clock::now();			
+		}
+	}		
 	else if ((ch == 'n' || ch == 'N'))
-		drawMandelbrot(width, height);
+	{
+		start = std::chrono::high_resolution_clock::now();
+		drawMandelbrot(width, height, isBenchmark);
+		stop = std::chrono::high_resolution_clock::now();
+	}
 	else
 	{
-		printf("Invalid choice! Aborting...\n");
+		std::cout << "Invalid choice! Aborting...\n";
 		exit(EXIT_FAILURE);
 	}
-	auto stop = std::chrono::high_resolution_clock::now();
+	
 	auto diff = std::chrono::duration_cast<std::chrono::seconds>(stop - start);
-	printf("Time taken is %d seconds.\n", (int)diff.count());
+	std::cout << "Time taken is " << (int)diff.count() << " seconds.\n";
 	return 0;
+}
+
+void saveImg(Color3f *frameBuffer, int width, int height)
+{
+	int bufferSize = width * height;
+	std::cout << "Writing out frame buffer to file..." << std::endl;
+
+	const char *outputPath = "Mandelbrot.ppm";
+
+	std::ofstream out(outputPath); // creates a PPM image file for saving the rendered output
+	out << "P3\n" << width << " " << height << "\n255\n";
+
+	for (uint32_t i = 0; i < bufferSize; i++)
+		out << static_cast<int>(frameBuffer[i].r * 255.99) << " " << static_cast<int>(frameBuffer[i].g * 255.99) << " " << static_cast<int>(frameBuffer[i].b * 255.99) << "\n";
 }
 
 double getMappedScaleX(const int &x, const int &xMax)
@@ -183,7 +225,6 @@ double getMappedScaleY(const int &y, const int &yMax)
 	return ((y / (double) yMax) * 2) - 1;
 }
 
-
 void evalMandel(Complex &z, const Complex &c)
 {
 	double zReal = z.a;
@@ -192,7 +233,7 @@ void evalMandel(Complex &z, const Complex &c)
 	z.b = 2 * zReal * zImaginary + c.b;
 }
 
-void drawMandelbrot(const int &width, const int &height)
+void drawMandelbrot(const int &width, const int &height, int isBenchmark)
 {
 	uint32_t bufferSize = width * height;
 	Color3f *frameBuffer = new Color3f[bufferSize];
@@ -218,23 +259,16 @@ void drawMandelbrot(const int &width, const int &height)
 		}
 	}
 	
-	std::cout << "Writing out frame buffer to file..." << std::endl;
-
-	const char *outputPath = "Mandelbrot.ppm";
-
-	std::ofstream out(outputPath); // creates a PPM image file for saving the rendered output
-	out << "P3\n" << width << " " << height << "\n255\n";
-
-	for (uint32_t i = 0; i < bufferSize; i++)
-		out << static_cast<int>(frameBuffer[i].r * 255.99) << " " << static_cast<int>(frameBuffer[i].g * 255.99) << " " << static_cast<int>(frameBuffer[i].b * 255.99) << "\n";
+	if (!isBenchmark)
+		saveImg(frameBuffer, width, height);
 	
 	delete[] frameBuffer;
 }
 
-void drawMandelbrotMT(const int &width, const int &height)
+void drawMandelbrotOMP(const int &width, const int &height, int isBenchmark)
 {
 	uint32_t bufferSize = width * height;
-	Color3f *frameBuffer = new Color3f[bufferSize];
+	Color3f *frameBuffer = new Color3f[bufferSize];	
 	size_t nThreads = std::thread::hardware_concurrency();
 #pragma omp parallel num_threads(nThreads) shared(frameBuffer)
 	{
@@ -261,15 +295,57 @@ void drawMandelbrotMT(const int &width, const int &height)
 		}
 	}
 	
-	std::cout << "Writing out frame buffer to file..." << std::endl;
-
-	const char *outputPath = "Mandelbrot.ppm";
-
-	std::ofstream out(outputPath); // creates a PPM image file for saving the rendered output
-	out << "P3\n" << width << " " << height << "\n255\n";
-
-	for (uint32_t i = 0; i < bufferSize; i++)
-		out << static_cast<int>(frameBuffer[i].r * 255.99) << " " << static_cast<int>(frameBuffer[i].g * 255.99) << " " << static_cast<int>(frameBuffer[i].b * 255.99) << "\n";
+	if (!isBenchmark)
+		saveImg(frameBuffer, width, height);
 	
 	delete[] frameBuffer;
+}
+
+void drawMandelbrotThread(int renderWidth, int renderHeight, int tileWidth, int tileHeight, int startX, int startY, Color3f *frameBuffer)
+{
+	for (int y = 0; y < tileHeight; y++) // y axis of the image	
+	{
+		for (int x = startX; x < tileWidth; x++) // x axis of the image
+		{
+			uint32_t index = (startY + y) * tileWidth + x;
+			int itr = 0;
+			Complex z, c;
+			c.a = getMappedScaleX((double)x, renderWidth);
+			c.b = getMappedScaleY((double)(startY + y), renderHeight);
+			while (z.real() * z.real() + z.imaginary() * z.imaginary() <= 2 * 2 && itr < MAX_ITR)
+			{
+				evalMandel(z, c);
+				itr++;
+			}
+			if (itr < MAX_ITR)
+				frameBuffer[index] = BLACK;
+			else
+				frameBuffer[index] = CYAN;
+		}
+	}
+}
+
+void drawMandelbrotMT(const int &width, const int &height, int isBenchmark)
+{
+	uint32_t bufferSize = width * height, startX = 0, startY = 0; 
+	size_t nThreads = std::thread::hardware_concurrency();
+	Color3f *frameBuffer = new Color3f[bufferSize];	
+	
+	size_t tileWidth = width, tileHeight = height / nThreads;
+	
+	std::thread *mandelThreads = new std::thread[nThreads];
+	for (int i = 0; i < nThreads; ++i)
+	{
+		mandelThreads[i] = std::thread(drawMandelbrotThread, width, height, tileWidth, tileHeight, startX, startY, frameBuffer);
+		startY += tileHeight;
+	}
+	
+	for (int i = 0; i < nThreads; ++i)
+		mandelThreads[i].join();
+	
+	if (!isBenchmark)
+		saveImg(frameBuffer, width, height);	
+	
+	delete[] frameBuffer;
+	delete [] mandelThreads;
 }
