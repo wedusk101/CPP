@@ -22,7 +22,7 @@ the Mandelbrot set bounds, then the given complex number C is said to be a part 
 
 The Mandelbrot set is what is known as a fractal pattern. It has repeating patterns visible upon zooming and is self-similar. It is named after the mathematician
 Benoit Mandelbrot. It is the most well-known fractal. Computing the Mandelbrot used to be a very compute intensive task to perform once. Nowadays, it can be trivially 
-computed by even processors in smart watches. For fun, there are simple multithreaded implementations provided here using OpenMP and C++ Stand Library threads.
+computed by even processors in smart watches. For fun, there are simple multithreaded implementations provided here using OpenMP and C++ Standard Library threads.
 This is an offline variant of this algorithm. The multithreading should show speed ups at very high resolutions only. Otherwise, the overhead
 of creating the threads might be too high. The bottleneck in this program is the disk access for writing out the rendered buffer to file,
 especially at lower resolutions.
@@ -42,19 +42,19 @@ To know more about the Mandelbrot set please refer to https://en.wikipedia.org/w
 
 struct Color3f
 {
-	double r; // red 0-1
-	double g; // green 0-1
-	double b; // blue 0-1
+	float r; // red 0-1
+	float g; // green 0-1
+	float b; // blue 0-1
 	
 	Color3f() : r(0), g(0), b(0) {}
-	Color3f(const double &r_, const double &g_, const double &b_) : r(r_), g(g_), b(b_) {}
+	Color3f(const float &r_, const float &g_, const float &b_) : r(r_), g(g_), b(b_) {}
 
 	inline Color3f operator&(const Color3f &col) const // color modulate
 	{
 		return Color3f(r * col.r, g * col.g, b * col.b);
 	}
 
-	inline Color3f operator*(const double &c) const // scalar multiplication
+	inline Color3f operator*(const float &c) const // scalar multiplication
 	{
 		return Color3f(c * r, c * g, c * b);
 	}
@@ -64,13 +64,13 @@ struct Color3f
 		return Color3f(r + c.r, g + c.g, b + c.b);
 	}
 
-	inline Color3f operator/(const double &c) const // scalar division
+	inline Color3f operator/(const float &c) const // scalar division
 	{
-		double inv = 1. / c;
+		float inv = 1. / c;
 		return Color3f(r * inv, g * inv, b * inv);
 	}
 
-	inline Color3f& operator*=(const double &c) // scalar division
+	inline Color3f& operator*=(const float &c) // scalar division
 	{
 		r *= c;
 		g *= c;
@@ -78,9 +78,9 @@ struct Color3f
 		return *this;
 	}
 
-	inline Color3f& operator/=(const double &c) // scalar division
+	inline Color3f& operator/=(const float &c) // scalar division
 	{
-		double inv = 1. / c;
+		float inv = 1. / c;
 		r *= inv;
 		g *= inv;
 		b *= inv;
@@ -105,23 +105,23 @@ struct Color3f
 
 struct Complex // class to support Complex numbers
 {
-	double a;
-	double b;
+	float a;
+	float b;
 
 	Complex() : a(0), b(0) {}
-	Complex(double a_, double b_) : a(a_), b(b_) {}
+	Complex(float a_, float b_) : a(a_), b(b_) {}
 
-	double real() const
+	float real() const
 	{
 		return a;
 	}
 
-	double imaginary() const
+	float imaginary() const
 	{
 		return b;
 	}
 
-	double getModulus()
+	float getModulus()
 	{
 		return sqrt(a * a + b * b);
 	}
@@ -157,21 +157,21 @@ void saveImg(Color3f *frameBuffer, int width, int height)
 }
 
 // maps pixel values in the X direction of screen space between (-2.5, 1)
-double getMappedScaleX(const int &x, const int &xMax)
+float getMappedScaleX(const int &x, const int &xMax)
 {
-	return ((x / (double) xMax) * 3.5) - 2.5;
+	return ((x / (float) xMax) * 3.5) - 2.5;
 }
 
 // maps pixel values in the Y direction of screen space between (-1, 1)
-double getMappedScaleY(const int &y, const int &yMax)
+float getMappedScaleY(const int &y, const int &yMax)
 {
-	return ((y / (double) yMax) * 2) - 1;
+	return ((y / (float) yMax) * 2) - 1;
 }
 
 void evalMandel(Complex &z, const Complex &c)
 {
-	double zReal = z.a;
-	double zImaginary = z.b;
+	float zReal = z.a;
+	float zImaginary = z.b;
 	z.a = zReal * zReal - zImaginary * zImaginary + c.a;
 	z.b = 2 * zReal * zImaginary + c.b;
 }
@@ -188,8 +188,8 @@ void drawMandelbrot(const int &width, const int &height, int isBenchmark)
 			index = y * width + x;
 			int itr = 0;
 			Complex z, c;
-			c.a = getMappedScaleX((double)x, width);
-			c.b = getMappedScaleY((double)y, height);
+			c.a = getMappedScaleX((float)x, width);
+			c.b = getMappedScaleY((float)y, height);
 			while (z.real() * z.real() + z.imaginary() * z.imaginary() <= 2 * 2 && itr < MAX_ITR)
 			{
 				evalMandel(z, c);
@@ -219,8 +219,7 @@ void drawMandelbrotSIMD(const int &width, const int &height, int isBenchmark)
 			_const1neg, _mod, _const4, _maskwhile; 
 	
 	// 32-bit signed int registers
-	__m128i _maskwhileitr, _itr, _constmaxitr, _indexi, _inc1i, _const1i;
-	// __m128i _widthi = _mm_setr_epi32(width, width, width, width);
+	__m128i _maskwhileitr, _itr, _constmaxitr, _inc1i, _const1i;
 	
 	// initialize floating point registers
 	_const1neg = _mm_set1_ps(-1.0);
@@ -246,24 +245,20 @@ void drawMandelbrotSIMD(const int &width, const int &height, int isBenchmark)
 			__m128 _xf = _mm_setr_ps((float)x + 3, (float)x + 2, (float)x + 1, (float)x);
 			
 			// __m128i _yi = _mm_set1_epi32(y);
-			__m128 _yf = _mm_set1_ps((float)y);			
+			__m128 _yf = _mm_set1_ps((float)y);				
 			
-			
-			// int index = y * width + x;
-			
+			// int index = y * width + x;			
 			int index0 = yw + x; // y * width + x
 			int index1 = yw + x + 1; // y * width + (x + 1)
 			int index2 = yw + x + 2; // y * width + (x + 2)
-			int index3 = yw + x + 3; // y * width + (x + 3)
-			
-			_indexi = _mm_setr_epi32(index3, index2, index1, index0); // store set of 4 packed consecutive indices
+			int index3 = yw + x + 3; // y * width + (x + 3)			
 			
 			// int itr = 0;	
 			_itr = _mm_set1_epi32(0); // initialize iteration counter for each pixel
 			
-			_inc1i = _const1i; // while loop iteration condition
+			// _inc1i = _const1i; // while loop iteration condition
 			
-			// float zr = 0, zi = 0, cr = 0, ci = 0;				
+			// float zr = 0, zi = 0, cr = 0, ci = 0; [ Complex z, c ]				
 			_zr = _mm_set1_ps(0);
 			_zi = _mm_set1_ps(0);
 			_cr = _mm_set1_ps(0);
@@ -272,8 +267,7 @@ void drawMandelbrotSIMD(const int &width, const int &height, int isBenchmark)
 			// cr = (x * invW) - 2.5;			
 			// _cr =  _mm_fmadd_ps(_xf, _invw, _const2p5neg); // No FMA on my Nehalem CPU			 
 			_cr = _mm_mul_ps(_xf, _invw);
-			_cr = _mm_add_ps(_cr, _const2p5neg);
-			
+			_cr = _mm_add_ps(_cr, _const2p5neg);			
 			
 			// ci = (y * invH) - 1;			
 			// _ci =  _mm_fmadd_ps(_yf, _invh, _const1neg);  // No FMA on my Nehalem CPU
@@ -290,6 +284,8 @@ void drawMandelbrotSIMD(const int &width, const int &height, int isBenchmark)
 			_maskwhileitr = _mm_cmplt_epi32(_itr, _constmaxitr); // itr < MAX_ITR			
 			_maskwhile = _mm_and_ps(_maskwhile, _mm_castsi128_ps(_maskwhileitr)); // (zr * zr + zi * zi <= 4.0 && itr < MAX_ITR)
 			
+			
+			// evalMandel(z, c)
 			_a = _zr;
 			_b = _zi;
 			
@@ -347,8 +343,8 @@ void drawMandelbrotOMP(const int &width, const int &height, int isBenchmark)
 				uint32_t index = y * width + x;
 				int itr = 0;
 				Complex z, c;
-				c.a = getMappedScaleX((double)x, width);
-				c.b = getMappedScaleY((double)y, height);
+				c.a = getMappedScaleX((float)x, width);
+				c.b = getMappedScaleY((float)y, height);
 				while (z.real() * z.real() + z.imaginary() * z.imaginary() <= 2 * 2 && itr < MAX_ITR)
 				{
 					evalMandel(z, c);
@@ -377,8 +373,8 @@ void drawMandelbrotThread(int renderWidth, int renderHeight, int tileWidth, int 
 			uint32_t index = (startY + y) * tileWidth + x;
 			int itr = 0;
 			Complex z, c;
-			c.a = getMappedScaleX((double)x, renderWidth);
-			c.b = getMappedScaleY((double)(startY + y), renderHeight);
+			c.a = getMappedScaleX((float)x, renderWidth);
+			c.b = getMappedScaleY((float)(startY + y), renderHeight);
 			while (z.real() * z.real() + z.imaginary() * z.imaginary() <= 2 * 2 && itr < MAX_ITR)
 			{
 				evalMandel(z, c);
@@ -430,9 +426,7 @@ int main()
 	std::cout << "Enable multithreading? (Y/N)\n";
 	std::cin >> ch;
 	std::cout << "Enable benchmark mode? Disables file output for more accurate performance measurement. (1 = Yes / 0 = No[default])\n";
-	std::cin >> isBenchmark;
-	std::cout << "Use SIMD for better performance? (1 = Yes / 0 = No[default])\n";
-	std::cin >> useSIMD;
+	std::cin >> isBenchmark;	
 	
 	std::chrono::time_point<std::chrono::high_resolution_clock> start, stop;
 	
@@ -442,7 +436,10 @@ int main()
 		std::cin >> ch;
 		if (ch == 'y' || ch == 'Y')
 		{
+			std::cout << "Use SIMD for better performance? (1 = Yes / 0 = No[default])\n";
+			std::cin >> useSIMD;
 			std::cout << "Using OpenMP for parallelism.\n";
+			std::cout << "Generating the Mandelbrot set...\n";
 			start = std::chrono::high_resolution_clock::now();
 			drawMandelbrotOMP(width, height, isBenchmark);
 			stop = std::chrono::high_resolution_clock::now();
@@ -450,6 +447,7 @@ int main()
 		else
 		{
 			std::cout << "Using STL threads for parallelism.\n";
+			std::cout << "Generating the Mandelbrot set...\n";
 			start = std::chrono::high_resolution_clock::now();
 			drawMandelbrotMT(width, height, isBenchmark);	
 			stop = std::chrono::high_resolution_clock::now();			
@@ -457,6 +455,9 @@ int main()
 	}		
 	else if ((ch == 'n' || ch == 'N'))
 	{
+		std::cout << "Use SIMD for better performance? (1 = Yes / 0 = No[default])\n";
+		std::cin >> useSIMD;
+		std::cout << "Generating the Mandelbrot set...\n";
 		start = std::chrono::high_resolution_clock::now();
 		
 		if (useSIMD)
