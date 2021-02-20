@@ -46,8 +46,9 @@ Resources on SIMD intrinsics:
 [2] https://docs.microsoft.com/en-us/cpp/intrinsics/compiler-intrinsics?view=msvc-160
 [3] https://gcc.gnu.org/onlinedocs/gcc-4.9.2/gcc/X86-Built-in-Functions.html
 [4] https://software.intel.com/sites/landingpage/IntrinsicsGuide/#
-[5] https://www.youtube.com/watch?v=x9Scb5Mku1g
-[6] https://www.youtube.com/watch?v=QghC6G8TyQ0
+[5] https://www.linuxjournal.com/content/introduction-gcc-compiler-intrinsics-vector-processing
+[6] https://www.youtube.com/watch?v=x9Scb5Mku1g
+[7] https://www.youtube.com/watch?v=QghC6G8TyQ0
 
 */
 
