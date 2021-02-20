@@ -232,8 +232,7 @@ void drawMandelbrotSIMD(const int &width, const int &height, int isBenchmark)
 	_invh = _mm_set1_ps(invH);	
 	
 	// initialize integer registers
-	 _constmaxitr = _mm_set1_epi32(MAX_ITR);
-	_itr = _mm_set1_epi32(0);
+	 _constmaxitr = _mm_set1_epi32(MAX_ITR);	
 	_const1i = _mm_set1_epi32(1);	
 	
 	
@@ -242,17 +241,15 @@ void drawMandelbrotSIMD(const int &width, const int &height, int isBenchmark)
 		int yw = y * width;
 		
 		for (int x = 0; x < width; x += 4) // x axis of the image
-		{
-			_inc1i = _const1i; // while loop iteration condition
-				
-			__m128i _xi = _mm_setr_epi32(x + 3, x + 2, x + 1, x);
+		{			
+			// __m128i _xi = _mm_setr_epi32(x + 3, x + 2, x + 1, x);
 			__m128 _xf = _mm_setr_ps((float)x + 3, (float)x + 2, (float)x + 1, (float)x);
 			
-			__m128i _yi = _mm_set1_epi32(y);
+			// __m128i _yi = _mm_set1_epi32(y);
 			__m128 _yf = _mm_set1_ps((float)y);			
 			
 			
-			int index = y * width + x;
+			// int index = y * width + x;
 			
 			int index0 = yw + x; // y * width + x
 			int index1 = yw + x + 1; // y * width + (x + 1)
@@ -261,9 +258,12 @@ void drawMandelbrotSIMD(const int &width, const int &height, int isBenchmark)
 			
 			_indexi = _mm_setr_epi32(index3, index2, index1, index0); // store set of 4 packed consecutive indices
 			
-			int itr = 0;	
+			// int itr = 0;	
+			_itr = _mm_set1_epi32(0); // initialize iteration counter for each pixel
 			
-			float zr = 0, zi = 0, cr = 0, ci = 0;				
+			_inc1i = _const1i; // while loop iteration condition
+			
+			// float zr = 0, zi = 0, cr = 0, ci = 0;				
 			_zr = _mm_set1_ps(0);
 			_zi = _mm_set1_ps(0);
 			_cr = _mm_set1_ps(0);
@@ -284,41 +284,45 @@ void drawMandelbrotSIMD(const int &width, const int &height, int isBenchmark)
 			_zi2 = _mm_mul_ps(_zi, _zi); // zi * zi
 			_mod = _mm_add_ps(_zr2, _zi2); // zr * zr + zi * zi
 			
-			loop: // while(...)
+			loop: // while (zr * zr + zi * zi <= 2 * 2 && itr < MAX_ITR)
 			
 			_maskwhile = _mm_cmple_ps(_mod, _const4); // zr * zr + zi * zi <= 4.0
 			_maskwhileitr = _mm_cmplt_epi32(_itr, _constmaxitr); // itr < MAX_ITR			
 			_maskwhile = _mm_and_ps(_maskwhile, _mm_castsi128_ps(_maskwhileitr)); // (zr * zr + zi * zi <= 4.0 && itr < MAX_ITR)
 			
-			while (zr * zr + zi * zi <= 2 * 2 && itr < MAX_ITR)
-			{
-				_a = _zr;
-				_b = _zi;
-				
-				_zr = _mm_sub_ps(_zr2, _zi2); // zr = zr * zr - zi * zi
-				_zr = _mm_add_ps(_zr, _cr); // zr += cr
-				
-				_zi = _mm_mul_ps(_a, _b); // zi = a * b
-				
-				// zi = zi * 2 + ci
-				// _zi = _mm_fmadd_ps(_zi, _const2, _ci); // No FMA on my Nehalem CPU
-				_zi = _mm_mul_ps(_zi, _const2);
-				_zi = _mm_add_ps(_zi, _ci);
-				
-
-				_inc1i = _mm_and_ps(_maskwhile, _inc1i)
-				// _itr
-			}
+			_a = _zr;
+			_b = _zi;
 			
-			// if (any one register satisfies while condition)
-				// goto loop;
+			_zr = _mm_sub_ps(_zr2, _zi2); // zr = zr * zr - zi * zi
+			_zr = _mm_add_ps(_zr, _cr); // zr += cr
 			
+			_zi = _mm_mul_ps(_a, _b); // zi = a * b
 			
+			// zi = zi * 2 + ci
+			// _zi = _mm_fmadd_ps(_zi, _const2, _ci); // No FMA on my Nehalem CPU
+			_zi = _mm_mul_ps(_zi, _const2);
+			_zi = _mm_add_ps(_zi, _ci);
 			
-			if (itr < MAX_ITR)
-				frameBuffer[index] = BLACK;
-			else
-				frameBuffer[index] = CYAN;
+			// itr++;
+			_inc1i = _mm_and_si128(_mm_castps_si128(_maskwhile), _const1i);
+			_itr = _mm_add_epi32(_itr, _inc1i);				
+			
+			// if (any one register satisfies while condition) goto loop;
+			if (_mm_movemask_ps(_maskwhile) > 0)
+				goto loop;
+			
+			// if (itr < MAX_ITR) frameBuffer[index] = BLACK;
+			// else frameBuffer[index] = CYAN;
+			
+			int pixel0 = _mm_extract_epi32(_maskwhileitr, 0);
+			int pixel1 = _mm_extract_epi32(_maskwhileitr, 1);
+			int pixel2 = _mm_extract_epi32(_maskwhileitr, 2);
+			int pixel3 = _mm_extract_epi32(_maskwhileitr, 3);
+			
+			frameBuffer[index0] = pixel0 ? BLACK : CYAN;
+			frameBuffer[index1] = pixel1 ? BLACK : CYAN;
+			frameBuffer[index2] = pixel2 ? BLACK : CYAN;
+			frameBuffer[index3] = pixel3 ? BLACK : CYAN;		
 		}
 	}
 	
