@@ -22,10 +22,19 @@ the Mandelbrot set bounds, then the given complex number C is said to be a part 
 
 The Mandelbrot set is what is known as a fractal pattern. It has repeating patterns visible upon zooming and is self-similar. It is named after the mathematician
 Benoit Mandelbrot. It is the most well-known fractal. Computing the Mandelbrot used to be a very compute intensive task to perform once. Nowadays, it can be trivially 
-computed by even processors in smart watches. For fun, there are simple multithreaded implementations provided here using OpenMP and C++ Standard Library threads.
-This is an offline variant of this algorithm. The multithreading should show speed ups at very high resolutions only. Otherwise, the overhead
-of creating the threads might be too high. The bottleneck in this program is the disk access for writing out the rendered buffer to file,
-especially at lower resolutions.
+computed by even processors in smart watches. There are multithreaded implementations provided here using OpenMP and C++ Standard Library threads.
+There are also both single and multithreaded implementations using SIMD for significantly better performance. This is an offline variant of
+this algorithm. The multithreading should show speed ups at very high resolutions only. Otherwise, the overhead of creating the threads
+might be too high. The bottleneck in this program is the disk access for writing out the rendered buffer to file,
+especially at lower resolutions. It is recommended to use the application in benchmark mode to disable file I/O for performance measurement.
+
+NOTE: 
+----
+Running the application at high enough resolutions can be memory intensive. 
+To compile the program make sure your the compiler flags to generate vector code for your processor specific architecture 
+is enabled. The SIMD instructions used here need at least SSE4.1 to run. I have tested on GCC 9.3.0 with
+the flags "-fopenmp -pthread -O3 -std=c++11 -msse4.1" to enable and/or link OpenMP, pthreads, full optimizations, C++11 threads
+and SSE4.1 instruction set respectively.
 
 
 To know more about the Mandelbrot set please refer to https://en.wikipedia.org/wiki/Mandelbrot_set
@@ -205,7 +214,7 @@ void drawMandelbrot(const int &width, const int &height, int isBenchmark)
 	if (!isBenchmark)
 		saveImg(frameBuffer, width, height);
 	
-	delete[] frameBuffer;
+	delete [] frameBuffer;
 }
 
 void drawMandelbrotSIMD(const int &width, const int &height, int isBenchmark)
@@ -216,7 +225,7 @@ void drawMandelbrotSIMD(const int &width, const int &height, int isBenchmark)
 	
 	// 32-bit float registers
 	__m128 _zr, _zi, _cr, _ci, _a, _b, _zr2, _zi2, _const2, _invw, _invh, _const2p5neg,
-			_const1neg, _mod, _const4, _maskwhile; 
+			_const1neg, _mod, _const4, _maskwhile, _xf, _yf; 
 	
 	// 32-bit signed int registers
 	__m128i _masknumitr, _itr, _constmaxitr, _inc1i, _const1i;
@@ -238,11 +247,11 @@ void drawMandelbrotSIMD(const int &width, const int &height, int isBenchmark)
 	for (int y = 0; y < height; y++) // y axis of the image	
 	{
 		int yw = y * width;
-		__m128 _yf = _mm_set1_ps((float)y);
+		_yf = _mm_set1_ps((float)y);
 		
 		for (int x = 0; x < width; x += 4) // x axis of the image
 		{			
-			__m128 _xf = _mm_setr_ps((float)x + 3, (float)x + 2, (float)x + 1, (float)x);							
+			_xf = _mm_setr_ps((float)x + 3, (float)x + 2, (float)x + 1, (float)x);							
 			
 			// int index = y * width + x;			
 			int index0 = yw + x; // y * width + x
@@ -259,28 +268,35 @@ void drawMandelbrotSIMD(const int &width, const int &height, int isBenchmark)
 			_cr = _mm_set1_ps(0);
 			_ci = _mm_set1_ps(0);
 			
+			// getMappedScaleX(const int &x, const int &xMax)
+			
 			// cr = (x * invW) - 2.5;			
 			// _cr =  _mm_fmadd_ps(_xf, _invw, _const2p5neg); // No FMA on my Nehalem CPU			 
 			_cr = _mm_mul_ps(_xf, _invw);
-			_cr = _mm_add_ps(_cr, _const2p5neg);			
+			_cr = _mm_add_ps(_cr, _const2p5neg);	
+
+			// getMappedScaleY(const int &y, const int &yMax)
 			
 			// ci = (y * invH) - 1;			
 			// _ci =  _mm_fmadd_ps(_yf, _invh, _const1neg);  // No FMA on my Nehalem CPU
 			_ci = _mm_mul_ps(_yf, _invh);
-			_ci = _mm_add_ps(_ci, _const1neg);			
+			_ci = _mm_add_ps(_ci, _const1neg);		
+
+			///////////////////////////// while (zr * zr + zi * zi <= 2 * 2 && itr < MAX_ITR) ///////////////////////////////
 			
+			loop: // while (...)
+				
 			_zr2 = _mm_mul_ps(_zr, _zr); // zr * zr
 			_zi2 = _mm_mul_ps(_zi, _zi); // zi * zi
-			_mod = _mm_add_ps(_zr2, _zi2); // zr * zr + zi * zi
-			
-			loop: // while (zr * zr + zi * zi <= 2 * 2 && itr < MAX_ITR)
-			
+			_mod = _mm_add_ps(_zr2, _zi2); // zr * zr + zi * zi			
+				
 			_masknumitr = _mm_cmplt_epi32(_itr, _constmaxitr); // itr < MAX_ITR	
 			_maskwhile = _mm_cmple_ps(_mod, _const4); // zr * zr + zi * zi <= 4.0					
 			_maskwhile = _mm_and_ps(_maskwhile, _mm_castsi128_ps(_masknumitr)); // (zr * zr + zi * zi <= 4.0 && itr < MAX_ITR)
 			
 			
-			// evalMandel(z, c)
+			//////////////////////// evalMandel(z, c)//////////////////////////////////
+			
 			_a = _zr;
 			_b = _zi;
 			
@@ -294,6 +310,9 @@ void drawMandelbrotSIMD(const int &width, const int &height, int isBenchmark)
 			_zi = _mm_mul_ps(_zi, _const2);
 			_zi = _mm_add_ps(_zi, _ci);
 			
+			//////////////////////// evalMandel(z, c)//////////////////////////////////
+			
+			
 			// itr++;
 			_inc1i = _mm_and_si128(_mm_castps_si128(_maskwhile), _const1i);
 			_itr = _mm_add_epi32(_itr, _inc1i);				
@@ -302,13 +321,16 @@ void drawMandelbrotSIMD(const int &width, const int &height, int isBenchmark)
 			if (_mm_movemask_ps(_maskwhile) > 0)
 				goto loop;
 			
+			///////////////////////////// while (zr * zr + zi * zi <= 2 * 2 && itr < MAX_ITR) ///////////////////////////////
+			
 			// if (itr < MAX_ITR) frameBuffer[index] = BLACK;
 			// else frameBuffer[index] = CYAN;
 			
-			int pixel0 = _mm_extract_epi32(_masknumitr, 0);
-			int pixel1 = _mm_extract_epi32(_masknumitr, 1);
-			int pixel2 = _mm_extract_epi32(_masknumitr, 2);
-			int pixel3 = _mm_extract_epi32(_masknumitr, 3);
+			// pixel masks read in correct endianness |3, 2, 1, 0| instead of |0, 1, 2, 3| 
+			int pixel0 = _mm_extract_epi32(_masknumitr, 3);
+			int pixel1 = _mm_extract_epi32(_masknumitr, 2);
+			int pixel2 = _mm_extract_epi32(_masknumitr, 1);
+			int pixel3 = _mm_extract_epi32(_masknumitr, 0);
 			
 			frameBuffer[index0] = pixel0 ? BLACK : CYAN;
 			frameBuffer[index1] = pixel1 ? BLACK : CYAN;
@@ -320,7 +342,7 @@ void drawMandelbrotSIMD(const int &width, const int &height, int isBenchmark)
 	if (!isBenchmark)
 		saveImg(frameBuffer, width, height);
 	
-	delete[] frameBuffer;
+	delete [] frameBuffer;
 }
 
 void drawMandelbrotOMP(const int &width, const int &height, int isBenchmark)
@@ -356,7 +378,139 @@ void drawMandelbrotOMP(const int &width, const int &height, int isBenchmark)
 	if (!isBenchmark)
 		saveImg(frameBuffer, width, height);
 	
-	delete[] frameBuffer;
+	delete [] frameBuffer;
+}
+
+void drawMandelbrotOMPSIMD(const int &width, const int &height, int isBenchmark)
+{
+	uint32_t bufferSize = width * height;
+	Color3f *frameBuffer = new Color3f[bufferSize];
+	float invW = (1./ width) * 3.5, invH = (1./ height) * 2;
+	size_t nThreads = std::thread::hardware_concurrency();
+#pragma omp parallel num_threads(nThreads) shared(frameBuffer)
+	{
+	
+		// 32-bit float registers
+		__m128 _zr, _zi, _cr, _ci, _a, _b, _zr2, _zi2, _const2, _invw, _invh, _const2p5neg,
+				_const1neg, _mod, _const4, _maskwhile, _xf, _yf; 
+		
+		// 32-bit signed int registers
+		__m128i _masknumitr, _itr, _constmaxitr, _inc1i, _const1i;
+		
+		// initialize floating point registers
+		_const1neg = _mm_set1_ps(-1.0);
+		_const2 = _mm_set1_ps(2.0);
+		_const4 = _mm_set1_ps(4.0);
+		_const2p5neg = _mm_set1_ps(-2.5);
+		
+		_invw = _mm_set1_ps(invW);
+		_invh = _mm_set1_ps(invH);	
+		
+		// initialize integer registers
+		 _constmaxitr = _mm_set1_epi32(MAX_ITR);	
+		_const1i = _mm_set1_epi32(1);	
+		
+#pragma omp for schedule(dynamic, 1) 
+		for (int y = 0; y < height; y++) // y axis of the image	
+		{
+			int yw = y * width;
+			_yf = _mm_set1_ps((float)y);
+			
+			for (int x = 0; x < width; x += 4) // x axis of the image
+			{			
+				_xf = _mm_setr_ps((float)x + 3, (float)x + 2, (float)x + 1, (float)x);							
+				
+				// int index = y * width + x;			
+				int index0 = yw + x; // y * width + x
+				int index1 = yw + x + 1; // y * width + (x + 1)
+				int index2 = yw + x + 2; // y * width + (x + 2)
+				int index3 = yw + x + 3; // y * width + (x + 3)			
+				
+				// int itr = 0;	
+				_itr = _mm_set1_epi32(0); // initialize iteration counter for each pixel
+				
+				// float zr = 0, zi = 0, cr = 0, ci = 0; [ Complex z, c ]				
+				_zr = _mm_set1_ps(0);
+				_zi = _mm_set1_ps(0);
+				_cr = _mm_set1_ps(0);
+				_ci = _mm_set1_ps(0);
+				
+				// getMappedScaleX(const int &x, const int &xMax)
+				
+				// cr = (x * invW) - 2.5;			
+				// _cr =  _mm_fmadd_ps(_xf, _invw, _const2p5neg); // No FMA on my Nehalem CPU			 
+				_cr = _mm_mul_ps(_xf, _invw);
+				_cr = _mm_add_ps(_cr, _const2p5neg);	
+
+				// getMappedScaleY(const int &y, const int &yMax)
+				
+				// ci = (y * invH) - 1;			
+				// _ci =  _mm_fmadd_ps(_yf, _invh, _const1neg);  // No FMA on my Nehalem CPU
+				_ci = _mm_mul_ps(_yf, _invh);
+				_ci = _mm_add_ps(_ci, _const1neg);		
+
+				///////////////////////////// while (zr * zr + zi * zi <= 2 * 2 && itr < MAX_ITR) ///////////////////////////////
+				
+				loop: // while (...)
+					
+				_zr2 = _mm_mul_ps(_zr, _zr); // zr * zr
+				_zi2 = _mm_mul_ps(_zi, _zi); // zi * zi
+				_mod = _mm_add_ps(_zr2, _zi2); // zr * zr + zi * zi			
+					
+				_masknumitr = _mm_cmplt_epi32(_itr, _constmaxitr); // itr < MAX_ITR	
+				_maskwhile = _mm_cmple_ps(_mod, _const4); // zr * zr + zi * zi <= 4.0					
+				_maskwhile = _mm_and_ps(_maskwhile, _mm_castsi128_ps(_masknumitr)); // (zr * zr + zi * zi <= 4.0 && itr < MAX_ITR)
+				
+				
+				//////////////////////// evalMandel(z, c)//////////////////////////////////
+				
+				_a = _zr;
+				_b = _zi;
+				
+				_zr = _mm_sub_ps(_zr2, _zi2); // zr = zr * zr - zi * zi
+				_zr = _mm_add_ps(_zr, _cr); // zr += cr
+				
+				_zi = _mm_mul_ps(_a, _b); // zi = a * b
+				
+				// zi = zi * 2 + ci
+				// _zi = _mm_fmadd_ps(_zi, _const2, _ci); // No FMA on my Nehalem CPU
+				_zi = _mm_mul_ps(_zi, _const2);
+				_zi = _mm_add_ps(_zi, _ci);
+				
+				//////////////////////// evalMandel(z, c)//////////////////////////////////
+				
+				
+				// itr++;
+				_inc1i = _mm_and_si128(_mm_castps_si128(_maskwhile), _const1i);
+				_itr = _mm_add_epi32(_itr, _inc1i);				
+				
+				// if (any one register satisfies while condition) goto loop;
+				if (_mm_movemask_ps(_maskwhile) > 0)
+					goto loop;
+				
+				///////////////////////////// while (zr * zr + zi * zi <= 2 * 2 && itr < MAX_ITR) ///////////////////////////////
+				
+				// if (itr < MAX_ITR) frameBuffer[index] = BLACK;
+				// else frameBuffer[index] = CYAN;
+				
+				// pixel masks read in correct endianness |3, 2, 1, 0| instead of |0, 1, 2, 3| 
+				int pixel0 = _mm_extract_epi32(_masknumitr, 3);
+				int pixel1 = _mm_extract_epi32(_masknumitr, 2);
+				int pixel2 = _mm_extract_epi32(_masknumitr, 1);
+				int pixel3 = _mm_extract_epi32(_masknumitr, 0);
+				
+				frameBuffer[index0] = pixel0 ? BLACK : CYAN;
+				frameBuffer[index1] = pixel1 ? BLACK : CYAN;
+				frameBuffer[index2] = pixel2 ? BLACK : CYAN;
+				frameBuffer[index3] = pixel3 ? BLACK : CYAN;		
+			}
+		}
+	}
+	
+	if (!isBenchmark)
+		saveImg(frameBuffer, width, height);
+	
+	delete [] frameBuffer;
 }
 
 void drawMandelbrotThread(int renderWidth, int renderHeight, int tileWidth, int tileHeight, int startX, int startY, Color3f *frameBuffer)
@@ -404,7 +558,7 @@ void drawMandelbrotMT(const int &width, const int &height, int isBenchmark)
 	if (!isBenchmark)
 		saveImg(frameBuffer, width, height);	
 	
-	delete[] frameBuffer;
+	delete [] frameBuffer;
 	delete [] mandelThreads;
 }
 
@@ -436,7 +590,12 @@ int main()
 			std::cout << "Using OpenMP for parallelism.\n";
 			std::cout << "Generating the Mandelbrot set...\n";
 			start = std::chrono::high_resolution_clock::now();
-			drawMandelbrotOMP(width, height, isBenchmark);
+			
+			if (useSIMD)
+				drawMandelbrotOMPSIMD(width, height, isBenchmark);
+			else
+				drawMandelbrotOMP(width, height, isBenchmark);
+			
 			stop = std::chrono::high_resolution_clock::now();
 		}
 		else
