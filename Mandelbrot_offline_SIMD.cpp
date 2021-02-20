@@ -37,7 +37,17 @@ the flags "-fopenmp -pthread -O3 -std=c++11 -msse4.1" to enable and/or link Open
 and SSE4.1 instruction set respectively.
 
 
-To know more about the Mandelbrot set please refer to https://en.wikipedia.org/wiki/Mandelbrot_set
+To know more about the Mandelbrot set, please refer to https://en.wikipedia.org/wiki/Mandelbrot_set
+
+Resources on SIMD intrinsics:
+----------------------------
+
+[1] https://www.cs.virginia.edu/~cr4bd/3330/S2018/simdref.html
+[2] https://docs.microsoft.com/en-us/cpp/intrinsics/compiler-intrinsics?view=msvc-160
+[3] https://gcc.gnu.org/onlinedocs/gcc-4.9.2/gcc/X86-Built-in-Functions.html
+[4] https://software.intel.com/sites/landingpage/IntrinsicsGuide/#
+[5] https://www.youtube.com/watch?v=x9Scb5Mku1g
+[6] https://www.youtube.com/watch?v=QghC6G8TyQ0
 
 */
 
