@@ -219,7 +219,7 @@ void drawMandelbrotSIMD(const int &width, const int &height, int isBenchmark)
 			_const1neg, _mod, _const4, _maskwhile; 
 	
 	// 32-bit signed int registers
-	__m128i _maskwhileitr, _itr, _constmaxitr, _inc1i, _const1i;
+	__m128i _masknumitr, _itr, _constmaxitr, _inc1i, _const1i;
 	
 	// initialize floating point registers
 	_const1neg = _mm_set1_ps(-1.0);
@@ -238,14 +238,11 @@ void drawMandelbrotSIMD(const int &width, const int &height, int isBenchmark)
 	for (int y = 0; y < height; y++) // y axis of the image	
 	{
 		int yw = y * width;
+		__m128 _yf = _mm_set1_ps((float)y);
 		
 		for (int x = 0; x < width; x += 4) // x axis of the image
 		{			
-			// __m128i _xi = _mm_setr_epi32(x + 3, x + 2, x + 1, x);
-			__m128 _xf = _mm_setr_ps((float)x + 3, (float)x + 2, (float)x + 1, (float)x);
-			
-			// __m128i _yi = _mm_set1_epi32(y);
-			__m128 _yf = _mm_set1_ps((float)y);				
+			__m128 _xf = _mm_setr_ps((float)x + 3, (float)x + 2, (float)x + 1, (float)x);							
 			
 			// int index = y * width + x;			
 			int index0 = yw + x; // y * width + x
@@ -255,8 +252,6 @@ void drawMandelbrotSIMD(const int &width, const int &height, int isBenchmark)
 			
 			// int itr = 0;	
 			_itr = _mm_set1_epi32(0); // initialize iteration counter for each pixel
-			
-			// _inc1i = _const1i; // while loop iteration condition
 			
 			// float zr = 0, zi = 0, cr = 0, ci = 0; [ Complex z, c ]				
 			_zr = _mm_set1_ps(0);
@@ -280,9 +275,9 @@ void drawMandelbrotSIMD(const int &width, const int &height, int isBenchmark)
 			
 			loop: // while (zr * zr + zi * zi <= 2 * 2 && itr < MAX_ITR)
 			
-			_maskwhile = _mm_cmple_ps(_mod, _const4); // zr * zr + zi * zi <= 4.0
-			_maskwhileitr = _mm_cmplt_epi32(_itr, _constmaxitr); // itr < MAX_ITR			
-			_maskwhile = _mm_and_ps(_maskwhile, _mm_castsi128_ps(_maskwhileitr)); // (zr * zr + zi * zi <= 4.0 && itr < MAX_ITR)
+			_masknumitr = _mm_cmplt_epi32(_itr, _constmaxitr); // itr < MAX_ITR	
+			_maskwhile = _mm_cmple_ps(_mod, _const4); // zr * zr + zi * zi <= 4.0					
+			_maskwhile = _mm_and_ps(_maskwhile, _mm_castsi128_ps(_masknumitr)); // (zr * zr + zi * zi <= 4.0 && itr < MAX_ITR)
 			
 			
 			// evalMandel(z, c)
@@ -310,10 +305,10 @@ void drawMandelbrotSIMD(const int &width, const int &height, int isBenchmark)
 			// if (itr < MAX_ITR) frameBuffer[index] = BLACK;
 			// else frameBuffer[index] = CYAN;
 			
-			int pixel0 = _mm_extract_epi32(_maskwhileitr, 0);
-			int pixel1 = _mm_extract_epi32(_maskwhileitr, 1);
-			int pixel2 = _mm_extract_epi32(_maskwhileitr, 2);
-			int pixel3 = _mm_extract_epi32(_maskwhileitr, 3);
+			int pixel0 = _mm_extract_epi32(_masknumitr, 0);
+			int pixel1 = _mm_extract_epi32(_masknumitr, 1);
+			int pixel2 = _mm_extract_epi32(_masknumitr, 2);
+			int pixel3 = _mm_extract_epi32(_masknumitr, 3);
 			
 			frameBuffer[index0] = pixel0 ? BLACK : CYAN;
 			frameBuffer[index1] = pixel1 ? BLACK : CYAN;
