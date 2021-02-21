@@ -639,7 +639,13 @@ int main()
 		exit(EXIT_FAILURE);
 	}
 	
-	auto diff = std::chrono::duration_cast<std::chrono::seconds>(stop - start);
-	std::cout << "Time taken is " << (int)diff.count() << " seconds.\n";
+	auto diffMSec = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
+	auto diffSec = std::chrono::duration_cast<std::chrono::seconds>(stop - start);
+	
+	if ((int)diffSec.count() < 1)
+		std::cout << "Time taken is " << (int)diffMSec.count() << " milliseconds.\n";
+	else
+		std::cout << "Time taken is " << (int)diffSec.count() << " seconds.\n";
+	
 	return 0;
 }
