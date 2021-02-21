@@ -557,11 +557,12 @@ void drawMandelbrotMT(const int &width, const int &height, int isBenchmark)
 	size_t tileWidth = width, tileHeight = height / nThreads;
 	
 	std::thread *mandelThreads = new std::thread[nThreads];
-	for (int i = 0; i < nThreads; ++i)
+	for (int i = 0; i < nThreads - 1; ++i)
 	{
 		mandelThreads[i] = std::thread(drawMandelbrotThread, width, height, tileWidth, tileHeight, startX, startY, frameBuffer);
 		startY += tileHeight;
 	}
+	mandelThreads[nThreads - 1] = std::thread(drawMandelbrotThread, width, height, tileWidth, height - startY, startX, startY, frameBuffer);
 	
 	for (int i = 0; i < nThreads; ++i)
 		mandelThreads[i].join();
