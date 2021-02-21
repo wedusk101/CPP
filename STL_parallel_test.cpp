@@ -1,10 +1,10 @@
 /*
-The following piece of code tests the parallel sort algorithm offered by C++ 17 Standard Library.
+The following piece of code tests the parallel sort algorithm offered by C++17 Standard Library.
 This *requires* compiler support for the feature which is still pretty nascent as of early 2021.
 I have tested it with G++ 9.3.0 on Ubuntu 20.04 LTS running under WSL2 on Windows 10 Pro x64,
 build 19042 with libtbb2 (= 2020.1-2). Older versions of Ubuntu don't seem to have Intel oneAPI
 TBB 2018 or greater which is required for the PSTL back-end used for the Parallel STL
-implementation of GCC. Compilation requires setting the flag "-std=c++17" to enable C++ 17
+implementation of GCC. Compilation requires setting the flag "-std=c++17" to enable C++17
 support along with the flag "-ltbb" to link the TBB library.
 
 Running the program requires passing the size of the list of numbers to sort as a command line 
@@ -32,7 +32,7 @@ int main(int argc, char *argv[])
 {
 	std::cout << "\nThe following program generates a list of random numbers and sorts them.\n";
 	std::cout << "It measures the time taken to sort using a single thread and then compares\n"
-				 "that with the time taken when sorting using parallel algorithms in C++ 17.\n"
+				 "that with the time taken when sorting using parallel algorithms in C++17.\n"
 				 "Finally the achieved speedup is displayed to the user.\n\n";
 	if (argc == 1)
 	{
