@@ -497,7 +497,11 @@ Ray getRayBatchData(const RayCluster4 &rayBatch, int index)
 {
 	Vec3 o(rayBatch.ox[index], rayBatch.oy[index], rayBatch.oz[index]);
 	Vec3 d(rayBatch.dx[index], rayBatch.dy[index], rayBatch.dz[index]);
-	return Ray(o, d);
+	Ray r(o, d);
+	r.tMin = rayBatch.tMin[index];
+	r.t = rayBatch.t[index];
+	r.tMax = rayBatch.tMax[index];
+	return r;
 }
 
 void initRayBatch(RayCluster4 &rayBatch, const Ray &r0, const Ray &r1, const Ray &r2, const Ray &r3)
@@ -604,7 +608,7 @@ void renderSIMD(Vec3 *fb,
 				bool isBenchmark,
 				int nBenchLoops)
 {
-	Vec3 ambient(0.25, 0, 0);	// light red ambient light
+	Vec3 ambient(1, 0, 0);	// light red ambient light
 	float ambientIntensity = 0.25;
 	Vec3 bgColor = ambient * ambientIntensity;
 	
@@ -620,7 +624,7 @@ void renderSIMD(Vec3 *fb,
 				for(int x = 0; x < width; x += 4)
 				{
 					Vec3Cluster4 pixelColor4;
-					initVec3Batch(pixelColor4, bgColor);
+					initVec3Batch(pixelColor4, ambient);
 					
 					Ray cameraRay0(Vec3(x, y, 0), camera.direction); // camera ray from each pixel 
 					Ray cameraRay1(Vec3(x + 1, y, 0), camera.direction); // camera ray from each pixel 
