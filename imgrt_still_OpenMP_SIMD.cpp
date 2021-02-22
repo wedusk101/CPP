@@ -539,14 +539,13 @@ void initRayBatch(RayCluster4 &rayBatch, const Ray &r0, const Ray &r1, const Ray
 	}	
 }
 
-Vec3Cluster4 getPixelColorBatch(RayCluster4 &cameraRayBatch, std::vector<Geometry*> scene, const Light *light)
+void updatePixelColorBatch(RayCluster4 &cameraRayBatch, std::vector<Geometry*> scene, const Light *light, Vec3Cluster4 &pixelColor4)
 {
     Vec3 ambient(0.25, 0, 0);	// light red ambient light
 	float ambientIntensity = 0.25;
 	Vec3 bgColor = ambient * ambientIntensity;
-	Vec3 outColor(bgColor);
-	Vec3Cluster4 pixelColor4;
-	initVec3Batch(pixelColor4, bgColor);
+	Vec3 outColor(bgColor);	
+	
 	bool hitStatus[4];
 	int i = 0;
 	int hitIndex[4] = {-1};
@@ -593,8 +592,6 @@ Vec3Cluster4 getPixelColorBatch(RayCluster4 &cameraRayBatch, std::vector<Geometr
 			}
 		}
 	}
-
-	return pixelColor4;
 }
 
 void renderSIMD(Vec3 *fb,
@@ -609,6 +606,7 @@ void renderSIMD(Vec3 *fb,
 {
 	Vec3 ambient(0.25, 0, 0);	// light red ambient light
 	float ambientIntensity = 0.25;
+	Vec3 bgColor = ambient * ambientIntensity;
 	
 	for (int run = 0; run < nBenchLoops; run++)
     {		
@@ -622,6 +620,7 @@ void renderSIMD(Vec3 *fb,
 				for(int x = 0; x < width; x += 4)
 				{
 					Vec3Cluster4 pixelColor4;
+					initVec3Batch(pixelColor4, bgColor);
 					
 					Ray cameraRay0(Vec3(x, y, 0), camera.direction); // camera ray from each pixel 
 					Ray cameraRay1(Vec3(x + 1, y, 0), camera.direction); // camera ray from each pixel 
@@ -638,7 +637,7 @@ void renderSIMD(Vec3 *fb,
 					int index3 = yw + x + 3; // y * width + (x + 3)	
 						
 					
-					pixelColor4 = getPixelColorBatch(rayBatch, scene, light);		
+					updatePixelColorBatch(rayBatch, scene, light, pixelColor4);		
 					fb[index0] = getVec3BatchData(pixelColor4, 0);	
 					fb[index1] = getVec3BatchData(pixelColor4, 1);	
 					fb[index2] = getVec3BatchData(pixelColor4, 2);
