@@ -235,17 +235,17 @@ void drawMandelbrotSIMD(const int &width, const int &height, int isBenchmark)
 	float invW = (1./ width) * 3.5, invH = (1./ height) * 2;
 	
 	// 32-bit float registers
-	__m128 _zr, _zi, _cr, _ci, _a, _b, _zr2, _zi2, _const2, _invw, _invh, _const2p5neg,
-			_const1neg, _mod, _const4, _maskwhile, _xf, _yf; 
+	__m128 _zr, _zi, _cr, _ci, _a, _b, _zr2, _zi2, _const2, _invw, _invh, _const2p5,
+			_const1, _mod, _const4, _maskwhile, _xf, _yf; 
 	
 	// 32-bit signed int registers
 	__m128i _masknumitr, _itr, _constmaxitr, _inc1i, _const1i;
 	
 	// initialize floating point registers
-	_const1neg = _mm_set1_ps(-1.0);
+	_const1 = _mm_set1_ps(1.0);
 	_const2 = _mm_set1_ps(2.0);
 	_const4 = _mm_set1_ps(4.0);
-	_const2p5neg = _mm_set1_ps(-2.5);
+	_const2p5 = _mm_set1_ps(2.5);
 	
 	_invw = _mm_set1_ps(invW);
 	_invh = _mm_set1_ps(invH);	
@@ -284,14 +284,14 @@ void drawMandelbrotSIMD(const int &width, const int &height, int isBenchmark)
 			// cr = (x * invW) - 2.5;			
 			// _cr =  _mm_fmadd_ps(_xf, _invw, _const2p5neg); // No FMA on my Nehalem CPU			 
 			_cr = _mm_mul_ps(_xf, _invw);
-			_cr = _mm_add_ps(_cr, _const2p5neg);	
+			_cr = _mm_sub_ps(_cr, _const2p5);	
 
 			// getMappedScaleY(const int &y, const int &yMax)
 			
 			// ci = (y * invH) - 1;			
 			// _ci =  _mm_fmadd_ps(_yf, _invh, _const1neg);  // No FMA on my Nehalem CPU
 			_ci = _mm_mul_ps(_yf, _invh);
-			_ci = _mm_add_ps(_ci, _const1neg);		
+			_ci = _mm_sub_ps(_ci, _const1);		
 
 			///////////////////////////// while (zr * zr + zi * zi <= 2 * 2 && itr < MAX_ITR) ///////////////////////////////
 			
@@ -402,17 +402,17 @@ void drawMandelbrotOMPSIMD(const int &width, const int &height, int isBenchmark)
 	{
 	
 		// 32-bit float registers
-		__m128 _zr, _zi, _cr, _ci, _a, _b, _zr2, _zi2, _const2, _invw, _invh, _const2p5neg,
-				_const1neg, _mod, _const4, _maskwhile, _xf, _yf; 
+		__m128 _zr, _zi, _cr, _ci, _a, _b, _zr2, _zi2, _const2, _invw, _invh, _const2p5,
+				_const1, _mod, _const4, _maskwhile, _xf, _yf; 
 		
 		// 32-bit signed int registers
 		__m128i _masknumitr, _itr, _constmaxitr, _inc1i, _const1i;
 		
 		// initialize floating point registers
-		_const1neg = _mm_set1_ps(-1.0);
+		_const1 = _mm_set1_ps(1.0);
 		_const2 = _mm_set1_ps(2.0);
 		_const4 = _mm_set1_ps(4.0);
-		_const2p5neg = _mm_set1_ps(-2.5);
+		_const2p5 = _mm_set1_ps(2.5);
 		
 		_invw = _mm_set1_ps(invW);
 		_invh = _mm_set1_ps(invH);	
@@ -451,14 +451,14 @@ void drawMandelbrotOMPSIMD(const int &width, const int &height, int isBenchmark)
 				// cr = (x * invW) - 2.5;			
 				// _cr =  _mm_fmadd_ps(_xf, _invw, _const2p5neg); // No FMA on my Nehalem CPU			 
 				_cr = _mm_mul_ps(_xf, _invw);
-				_cr = _mm_add_ps(_cr, _const2p5neg);	
+				_cr = _mm_sub_ps(_cr, _const2p5);	
 
 				// getMappedScaleY(const int &y, const int &yMax)
 				
 				// ci = (y * invH) - 1;			
 				// _ci =  _mm_fmadd_ps(_yf, _invh, _const1neg);  // No FMA on my Nehalem CPU
 				_ci = _mm_mul_ps(_yf, _invh);
-				_ci = _mm_add_ps(_ci, _const1neg);		
+				_ci = _mm_sub_ps(_ci, _const1);		
 
 				///////////////////////////// while (zr * zr + zi * zi <= 2 * 2 && itr < MAX_ITR) ///////////////////////////////
 				
