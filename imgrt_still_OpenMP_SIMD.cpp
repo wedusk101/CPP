@@ -77,6 +77,11 @@ struct Vec3
 		float mag = getMagnitude();
 		return Vec3(x/mag, y/mag, z/mag);
 	}
+	
+	void display() const
+	{
+		std::cout << "[" << x << ", " << y << ", " << z << "]" << std::endl;
+	}
 };
 
 struct Ray
@@ -88,6 +93,37 @@ struct Ray
 	mutable float tMax;
 	
 	Ray(const Vec3 &o_, const Vec3 &d_) : o(o_), d(d_), t(INT_MAX), tMin(0.1), tMax(INT_MAX) {}
+	Ray(const Ray &r)
+	{
+		o = r.o;
+		d = r.d;
+		t = r.t;
+		tMin = r.tMin;
+		tMax = r.tMax;
+	}
+	
+	Ray& operator=(const Ray &r)
+	{
+		o = r.o;
+		d = r.d;
+		t = r.t;
+		tMin = r.tMin;
+		tMax = r.tMax;
+		return *this;
+	}
+	
+	void display() const
+	{
+		std::cout << "\n\n";
+		std::cout << "Origin: ";
+		o.display();
+		std::cout << "Direction: ";
+		d.display();
+		std::cout << "t: " << t << std::endl;
+		std::cout << "tMin: " << tMin << std::endl;
+		std::cout << "tMax: " << tMax << std::endl;		
+		std::cout << "\n\n";
+	}
 };
 
 struct Vec3Cluster4
@@ -182,12 +218,12 @@ struct Sphere : public Geometry
 		__m128 _centery = _mm_set1_ps(center.y);
 		__m128 _centerz = _mm_set1_ps(center.z);
 		
-		// const Vec3 oc = rayo - center;
+		// const Vec3 oc = ray.o - center;
 		__m128 _ocx = _mm_sub_ps(_rayox, _centerx);
 		__m128 _ocy = _mm_sub_ps(_rayoy, _centery);
 		__m128 _ocz = _mm_sub_ps(_rayoz, _centerz);		
 		
-		// const float b = 2 * (rayd % oc);
+		// const float b = 2 * (ray.d % oc);
 		__m128 _const2 = _mm_set1_ps(2.0);		
 		__m128 _bx = _mm_mul_ps(_raydx, _ocx);
 		__m128 _by = _mm_mul_ps(_raydy, _ocy);
@@ -227,17 +263,17 @@ struct Sphere : public Geometry
 		// if(delta < eps) return false;
 		__m128 _maskdelta = _mm_cmplt_ps(_delta, _eps);
 		
-		int hitRay0 = _mm_extract_ps(_maskdelta, 3);
-		int hitRay1 = _mm_extract_ps(_maskdelta, 2);
-		int hitRay2 = _mm_extract_ps(_maskdelta, 1);
-		int hitRay3 = _mm_extract_ps(_maskdelta, 0);
+		int missRay0 = _mm_extract_ps(_maskdelta, 3);
+		int missRay1 = _mm_extract_ps(_maskdelta, 2);
+		int missRay2 = _mm_extract_ps(_maskdelta, 1);
+		int missRay3 = _mm_extract_ps(_maskdelta, 0);
 		
-		rayBatch.hasHit[0] = hitRay0 ? 1 : 0;
-		rayBatch.hasHit[1] = hitRay1 ? 1 : 0;
-		rayBatch.hasHit[2] = hitRay2 ? 1 : 0;
-		rayBatch.hasHit[3] = hitRay3 ? 1 : 0;
+		rayBatch.hasHit[0] = missRay0 ? 0 : rayBatch.hasHit[0];
+		rayBatch.hasHit[1] = missRay1 ? 0 : rayBatch.hasHit[1];
+		rayBatch.hasHit[2] = missRay2 ? 0 : rayBatch.hasHit[2];
+		rayBatch.hasHit[3] = missRay3 ? 0 : rayBatch.hasHit[3];
 		
-		if (!(hitRay0 || hitRay1 || hitRay2 || hitRay3))
+		if (missRay0 && missRay1 && missRay2 && missRay3)
 			return;
 		
 		//delta = sqrt(delta);
@@ -282,25 +318,25 @@ struct Sphere : public Geometry
 		int maskHit2 = _mm_extract_ps(_maskhit, 1);
 		int maskHit3 = _mm_extract_ps(_maskhit, 0);
 		
-		if (maskHit0)
+		if (maskHit0) // && !missRay0)
 		{
 			rayBatch.tMax[0] = rayBatch.t[0];
 			rayBatch.hasHit[0] = 1;
 		}
 		
-		if (maskHit1)
+		if (maskHit1) // && !missRay1)
 		{
 			rayBatch.tMax[1] = rayBatch.t[1];
 			rayBatch.hasHit[1] = 1;
 		}
 		
-		if (maskHit2)
+		if (maskHit2) // && !missRay2)
 		{
 			rayBatch.tMax[2] = rayBatch.t[2];
 			rayBatch.hasHit[2] = 1;
 		}
 		
-		if (maskHit3)
+		if (maskHit3) // && !missRay3)
 		{
 			rayBatch.tMax[3] = rayBatch.t[3];
 			rayBatch.hasHit[3] = 1;
@@ -441,7 +477,7 @@ void initRayBatch(RayCluster4 &rayBatch)
 		rayBatch.t[i] = INT_MAX;
 		rayBatch.tMin[i] = 0.01;
 		rayBatch.tMax[i] = INT_MAX;
-		rayBatch.hasHit[0] = 0;
+		rayBatch.hasHit[i] = 0;
 	}
 }
 
@@ -465,7 +501,7 @@ void initRayBatch(RayCluster4 &rayBatch,
 		rayBatch.t[i] = INT_MAX;
 		rayBatch.tMin[i] = 0.01;
 		rayBatch.tMax[i] = INT_MAX;
-		rayBatch.hasHit[0] = 0;
+		rayBatch.hasHit[i] = 0;
 	}
 }
 
@@ -489,7 +525,7 @@ void initRayBatch(RayCluster4 &rayBatch,
 		rayBatch.t[i] = INT_MAX;
 		rayBatch.tMin[i] = 0.01;
 		rayBatch.tMax[i] = INT_MAX;
-		rayBatch.hasHit[0] = 0;
+		rayBatch.hasHit[i] = 0;
 	}
 }
 
@@ -539,45 +575,48 @@ void initRayBatch(RayCluster4 &rayBatch, const Ray &r0, const Ray &r1, const Ray
 		rayBatch.t[i] = INT_MAX;
 		rayBatch.tMin[i] = 0.01;
 		rayBatch.tMax[i] = INT_MAX;
-		rayBatch.hasHit[0] = 0;
+		rayBatch.hasHit[i] = 0;
 	}	
 }
 
-void updatePixelColorBatch(RayCluster4 &cameraRayBatch, std::vector<Geometry*> scene, const Light *light, Vec3Cluster4 &pixelColor4)
+Vec3Cluster4 getPixelColorBatch(RayCluster4 &cameraRayBatch, const std::vector<Geometry*> &scene, const Light *light)
 {
     Vec3 ambient(0.25, 0, 0);	// light red ambient light
 	float ambientIntensity = 0.25;
 	Vec3 bgColor = ambient * ambientIntensity;
 	Vec3 outColor(bgColor);	
-	
-	bool hitStatus[4];
+	Vec3 black;
+
 	int i = 0;
 	int hitIndex[4] = {-1};
 	
 	for (auto &geo : scene)
 	{
 		geo->intersectsBatch(cameraRayBatch);
-		for (int j = 0; j < 4; j++)
+		for (int j = 0; j < 4; j++) // loop through ray batch
 		{
 			if (cameraRayBatch.hasHit[j])
-			{
 				hitIndex[j] = i;
-				hitStatus[j] = true;
-			}
 		}
         i++; // enumerates geometry
 	}	
 	
+	Vec3Cluster4 pixelColor4;
+	initVec3Batch(pixelColor4, black);
 	for (int k = 0; k < 4; k++) // loop through ray batch
-	{
-		outColor = bgColor;
-		if (hitStatus[k])
+	{		
+		if (cameraRayBatch.hasHit[k])
 		{
 			Ray cameraRay = getRayBatchData(cameraRayBatch, k);
 			Vec3 surf = cameraRay.o + cameraRay.d * cameraRay.tMax; // point of intersection
 			Vec3 L = (light->position - surf).getNormalized();
 			bool isOccluded = false;
-
+			
+			outColor = scene[hitIndex[k]]->color;
+			updateVec3Batch(pixelColor4, k, outColor);
+			
+			/*
+			
 			// check for shadows
 			Ray shadowRay(surf, L);
 			for (auto &geo : scene)
@@ -594,13 +633,15 @@ void updatePixelColorBatch(RayCluster4 &cameraRayBatch, std::vector<Geometry*> s
 				clamp(outColor);
 				updateVec3Batch(pixelColor4, k, outColor);
 			}
+			*/			
 		}
 	}
+	return pixelColor4;
 }
 
 void renderSIMD(Vec3 *fb,
 				Light *light,
-				std::vector<Geometry*> &scene,			
+				const std::vector<Geometry*> &scene,			
 				int nThreads,
 				const Camera &camera,
 				int width,
@@ -608,10 +649,6 @@ void renderSIMD(Vec3 *fb,
 				bool isBenchmark,
 				int nBenchLoops)
 {
-	Vec3 ambient(1, 0, 0);	// light red ambient light
-	float ambientIntensity = 0.25;
-	Vec3 bgColor = ambient * ambientIntensity;
-	
 	for (int run = 0; run < nBenchLoops; run++)
     {		
 #pragma omp parallel num_threads(nThreads) shared(fb)
@@ -624,7 +661,6 @@ void renderSIMD(Vec3 *fb,
 				for(int x = 0; x < width; x += 4)
 				{
 					Vec3Cluster4 pixelColor4;
-					initVec3Batch(pixelColor4, ambient);
 					
 					Ray cameraRay0(Vec3(x, y, 0), camera.direction); // camera ray from each pixel 
 					Ray cameraRay1(Vec3(x + 1, y, 0), camera.direction); // camera ray from each pixel 
@@ -638,10 +674,10 @@ void renderSIMD(Vec3 *fb,
 					int index0 = yw + x; // y * width + x
 					int index1 = yw + x + 1; // y * width + (x + 1)
 					int index2 = yw + x + 2; // y * width + (x + 2)
-					int index3 = yw + x + 3; // y * width + (x + 3)	
-						
+					int index3 = yw + x + 3; // y * width + (x + 3)							
 					
-					updatePixelColorBatch(rayBatch, scene, light, pixelColor4);		
+					pixelColor4 = getPixelColorBatch(rayBatch, scene, light);	
+					
 					fb[index0] = getVec3BatchData(pixelColor4, 0);	
 					fb[index1] = getVec3BatchData(pixelColor4, 1);	
 					fb[index2] = getVec3BatchData(pixelColor4, 2);
@@ -652,11 +688,11 @@ void renderSIMD(Vec3 *fb,
     }
 }
 
-Vec3 getPixelColor(Ray &cameraRay, std::vector<Geometry*> scene, const Light *light)
+Vec3 getPixelColor(Ray &cameraRay, const std::vector<Geometry*> &scene, const Light *light)
 {
     Vec3 ambient(0.25, 0, 0);	// light red ambient light
 	double ambientIntensity = 0.25;
-	Vec3 pixelColor = ambient * ambientIntensity;
+	Vec3 pixelColor; // = ambient * ambientIntensity;
 	bool hitStatus = false;
 	int hitIndex = 0, i = 0;
 	
@@ -692,7 +728,7 @@ Vec3 getPixelColor(Ray &cameraRay, std::vector<Geometry*> scene, const Light *li
 
 void render(Vec3 *fb,
 				Light *light,
-				std::vector<Geometry*> &scene,			
+				const std::vector<Geometry*> &scene,			
 				int nThreads,
 				const Camera &camera,
 				int width,
@@ -709,7 +745,7 @@ void render(Vec3 *fb,
             {
                 size_t index = y * width + x;
                 Ray cameraRay(Vec3(x, y, 0), camera.direction); // camera ray from each pixel 
-            
+				
                 fb[index] = getPixelColor(cameraRay, scene, light);			
             }
         }
