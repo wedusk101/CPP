@@ -21,7 +21,6 @@ size_t getRandUnitSize(std::default_random_engine &seed)
 	return static_cast<size_t>(trial * 10);
 }
 
-
 void produce()
 {
 	size_t tid = std::hash<std::thread::id>()(std::this_thread::get_id());
