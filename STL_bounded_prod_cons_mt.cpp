@@ -14,7 +14,7 @@ std::mutex resourceMutex;
 std::atomic<int> resource(1); // simulates the shared buffer of produced resource
 std::condition_variable cv;
 
-size_t toss(std::default_random_engine &seed)
+size_t getRandUnitSize(std::default_random_engine &seed)
 {
 	std::uniform_real_distribution<double> rnd(0.0, 1.0);
 	double trial = rnd(seed);
@@ -33,7 +33,7 @@ void produce()
 		size_t units = 0;
 		cv.wait(lock, [&]()
 		{
-			units = toss(seed);
+			units = getRandUnitSize(seed);
 			std::cout << "Available: " << resource << std::endl;
 			std::cout << "Units to produce: " << units << std::endl;
 			int newAmount = resource.load() + units;
@@ -66,7 +66,7 @@ void consume()
 		size_t units = 0;
 		cv.wait(lock, [&]()
 		{
-			units = toss(seed);
+			units = getRandUnitSize(seed);
 			std::cout << "Available: " << resource << std::endl;
 			std::cout << "Units to consume: " << units << std::endl;
 			int newAmount = resource.load() - units;
