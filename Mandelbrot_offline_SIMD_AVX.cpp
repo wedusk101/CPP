@@ -236,11 +236,10 @@ void drawMandelbrotAVX(const int &width, const int &height, int isBenchmark)
 	
 	// 32-bit float registers
 	__m256 _zr, _zi, _cr, _ci, _a, _b, _zr2, _zi2, _const2, _invw, _invh, _const2p5neg,
-			_const1neg, _mod, _const4, _xf, _yf; 
+			_const1neg, _mod, _const4, _maskwhile, _xf, _yf;
 	
 	// 32-bit signed int registers
-	__m256i _itr, _constmaxitr, _inc1i, _const1i;
-	__mmask8 _masknumitr, _maskwhile;
+	__m256i _masknumitr, _itr, _constmaxitr, _inc1i, _const1i;
 	
 	// initialize floating point registers
 	_const1neg = _mm256_set1_ps(-1.0);
@@ -252,7 +251,7 @@ void drawMandelbrotAVX(const int &width, const int &height, int isBenchmark)
 	_invh = _mm256_set1_ps(invH);	
 	
 	// initialize integer registers
-	 _constmaxitr = _mm256_set1_epi32(MAX_ITR);	
+	_constmaxitr = _mm256_set1_epi32(MAX_ITR);	
 	_const1i = _mm256_set1_epi32(1);	
 	
 	
@@ -289,13 +288,13 @@ void drawMandelbrotAVX(const int &width, const int &height, int isBenchmark)
 			
 			// cr = (x * invW) - 2.5;			
 			_cr =  _mm256_fmadd_ps(_xf, _invw, _const2p5neg);	
-	
+			
 
 			// getMappedScaleY(const int &y, const int &yMax)
 			
 			// ci = (y * invH) - 1;			
 			_ci =  _mm256_fmadd_ps(_yf, _invh, _const1neg);  
-	
+			
 
 			///////////////////////////// while (zr * zr + zi * zi <= 2 * 2 && itr < MAX_ITR) ///////////////////////////////
 			
@@ -305,8 +304,9 @@ void drawMandelbrotAVX(const int &width, const int &height, int isBenchmark)
 			_zi2 = _mm256_mul_ps(_zi, _zi); // zi * zi
 			_mod = _mm256_add_ps(_zr2, _zi2); // zr * zr + zi * zi			
 				
-			_masknumitr = _mm256_cmplt_epi32_mask(_itr, _constmaxitr); // itr < MAX_ITR	
-			_maskwhile = _mm256_cmple_epi32_mask(_mm256_castps_si256(_mod), _mm256_castps_si256(_const4)); // zr * zr + zi * zi <= 4.0					
+			_masknumitr = _mm256_cmpgt_epi32(_constmaxitr, _itr); // MAX_ITR > itr	
+			__m256i _modcmpi = _mm256_cmpgt_epi32(_mm256_castps_si256(_const4), _mm256_castps_si256(_mod));
+			_maskwhile =  _mm256_castsi256_ps(_modcmpi); // zr * zr + zi * zi <= 4.0	
 			_maskwhile = _mm256_and_ps(_maskwhile, _mm256_castsi256_ps(_masknumitr)); // (zr * zr + zi * zi <= 4.0 && itr < MAX_ITR)
 			
 			
@@ -321,9 +321,7 @@ void drawMandelbrotAVX(const int &width, const int &height, int isBenchmark)
 			_zi = _mm256_mul_ps(_a, _b); // zi = a * b
 			
 			// zi = zi * 2 + ci
-			// _zi = _mm_fmadd_ps(_zi, _const2, _ci); // No FMA on my Nehalem CPU
-			_zi = _mm256_mul_ps(_zi, _const2);
-			_zi = _mm256_add_ps(_zi, _ci);
+			_zi = _mm256_fmadd_ps(_zi, _const2, _ci); 
 			
 			//////////////////////// evalMandel(z, c)//////////////////////////////////
 			
@@ -341,7 +339,7 @@ void drawMandelbrotAVX(const int &width, const int &height, int isBenchmark)
 			// if (itr < MAX_ITR) frameBuffer[index] = BLACK;
 			// else frameBuffer[index] = CYAN;
 			
-			// pixel masks read in correct endianness |3, 2, 1, 0| instead of |0, 1, 2, 3| 
+			// pixel masks read in correct endianness |7, 6, 5, 4, 3, 2, 1, 0| instead of |0, 1, 2, 3, 4, 5, 6, 7| 
 			int pixel0 = _mm256_extract_epi32(_masknumitr, 7);
 			int pixel1 = _mm256_extract_epi32(_masknumitr, 6);
 			int pixel2 = _mm256_extract_epi32(_masknumitr, 5);
@@ -619,9 +617,9 @@ int main()
 			std::cout << "Generating the Mandelbrot set...\n";
 			start = std::chrono::high_resolution_clock::now();
 			
-			if (useAVX)
-				drawMandelbrotOMPAVX(width, height, isBenchmark);
-			else
+			// if (useAVX)
+			// 	drawMandelbrotOMPAVX(width, height, isBenchmark);
+			// else
 				drawMandelbrotOMP(width, height, isBenchmark);
 			
 			stop = std::chrono::high_resolution_clock::now();

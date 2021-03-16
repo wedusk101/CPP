@@ -251,7 +251,7 @@ void drawMandelbrotSIMD(const int &width, const int &height, int isBenchmark)
 	_invh = _mm_set1_ps(invH);	
 	
 	// initialize integer registers
-	 _constmaxitr = _mm_set1_epi32(MAX_ITR);	
+	_constmaxitr = _mm_set1_epi32(MAX_ITR);	
 	_const1i = _mm_set1_epi32(1);	
 	
 	
