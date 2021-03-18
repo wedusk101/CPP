@@ -23,7 +23,7 @@ the Mandelbrot set bounds, then the given complex number C is said to be a part 
 The Mandelbrot set is what is known as a fractal pattern. It has repeating patterns visible upon zooming and is self-similar. It is named after the mathematician
 Benoit Mandelbrot. It is the most well-known fractal. Computing the Mandelbrot used to be a very compute intensive task to perform once. Nowadays, it can be trivially 
 computed by even processors in smart watches. There are multithreaded implementations provided here using OpenMP and C++ Standard Library threads.
-There are also both single and multithreaded implementations using SIMD for significantly better performance. This is an offline variant of
+There are also both single and multithreaded implementations using SIMD processing for significantly better performance. This is an offline variant of
 this algorithm. The multithreading should show speed ups at very high resolutions only. Otherwise, the overhead of creating the threads
 might be too high. The bottleneck in this program is the disk access for writing out the rendered buffer to file,
 especially at lower resolutions. It is recommended to use the application in benchmark mode to disable file I/O for performance measurement.
