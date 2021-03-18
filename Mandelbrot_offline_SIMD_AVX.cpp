@@ -49,7 +49,8 @@ Resources on AVX intrinsics:
 [5] https://www.linuxjournal.com/content/introduction-gcc-compiler-intrinsics-vector-processing
 [6] https://www.youtube.com/watch?v=x9Scb5Mku1g
 [7] https://www.youtube.com/watch?v=QghC6G8TyQ0
-[8] https://software.intel.com/content/www/us/en/develop/articles/introduction-to-intel-advanced-vector-extensions.html
+[8] https://www.codingame.com/playgrounds/283/sse-avx-vectorization/what-is-sse-and-avx
+[9] https://software.intel.com/content/www/us/en/develop/articles/introduction-to-intel-advanced-vector-extensions.html
 
 */
 
