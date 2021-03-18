@@ -33,9 +33,11 @@ NOTE:
 Running the application at high enough resolutions can be memory intensive. 
 To compile the program make sure your the compiler flags to generate vector code for your processor specific architecture 
 is enabled. The SIMD instructions used here need at least AVX2 with FMA to run. I have tested on GCC 9.3.0 with
-the flags "-fopenmp -pthread -O3 -std=c++11 -mavx2 -mfma" to enable and/or link OpenMP, pthreads, full optimizations, C++11 threads
-and SSE4.1 instruction set respectively.
+the flags "-fopenmp -pthread -O3 -std=c++11 -mavx2 -mfma" to enable and/or link OpenMP, pthreads, full optimizations, C++11 threads,
+AVX2 instruction set and Fused Multiply Add respectively.
 
+TODO: The AVX implementation has slight rendering differences compared to the non-SIMD OpenMP and the single core versions.
+This is probably due to subtle precision errors in the AVX implementation. Needs further investigation for a fix.
 
 To know more about the Mandelbrot set, please refer to https://en.wikipedia.org/wiki/Mandelbrot_set
 
