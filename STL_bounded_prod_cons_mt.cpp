@@ -1,5 +1,11 @@
-/*The following code simulates the *Bounded* (single-single) Producer-Consumer problem using Standard Library threads. A producer thread produces a shared resource and then sleeps for a second.
-The consumer thread consumes the resource and then sleeps for a second. How much of the resource is produced or consumed is dictated by a pseudo-random subroutine.*/
+/*The following code simulates the *Bounded* Producer-Consumer (supporting arbitrary number of producers
+and consumers) problem using Standard Library threads. A producer thread produces a shared resource and
+then sleeps for a second. The consumer thread consumes the resource and then sleeps for a second. How
+much of the resource is produced or consumed is dictated by a pseudo-random number generator subroutine.
+
+Compile using flags to enable C++11 and link to pthread if necessary.
+On GCC this is done using the flags -std=c++11 -pthread passed to the compiler*/
+
 #include <iostream>
 #include <thread>
 #include <mutex>
@@ -8,6 +14,8 @@ The consumer thread consumes the resource and then sleeps for a second. How much
 #include <atomic>
 #include <condition_variable>
 
+const int nProd = 4;
+const int nCon = 4;
 const int MAXSIZE = 10;
 
 std::mutex resourceMutex;
@@ -18,18 +26,22 @@ size_t getRandUnitSize(std::default_random_engine &seed)
 {
 	std::uniform_real_distribution<double> rnd(0.0, 1.0);
 	double trial = rnd(seed);
-	return static_cast<size_t>(trial * 10);
+	return static_cast<size_t>(trial * MAXSIZE);
 }
 
-void produce()
+void produce(int id)
 {
 	size_t tid = std::hash<std::thread::id>()(std::this_thread::get_id());
-	std::default_random_engine seed(tid * static_cast<uint64_t>(std::chrono::system_clock::to_time_t((std::chrono::system_clock::now()))));
+	
+	// seeds the rng using the thread id and current time
+	std::default_random_engine seed(tid * static_cast<uint64_t>(std::chrono::system_clock::to_time_t((std::chrono::system_clock::now())))); 
+	
 	while (true)
 	{
 		std::unique_lock<std::mutex> lock(resourceMutex);
-		std::cout << "Lock acquired by producer..." << std::endl;
+		std::cout << "Lock acquired by producer " << id << " ... " << std::endl;
 		size_t units = 0;
+		
 		cv.wait(lock, [&]()
 		{
 			units = getRandUnitSize(seed);
@@ -54,15 +66,19 @@ void produce()
 	}
 }
 
-void consume()
+void consume(int id)
 {
 	size_t tid = std::hash<std::thread::id>()(std::this_thread::get_id());
-	std::default_random_engine seed(tid * static_cast<uint64_t>(std::chrono::system_clock::to_time_t((std::chrono::system_clock::now()))));
+	
+	// seeds the rng using the thread id and current time
+	std::default_random_engine seed(tid * static_cast<uint64_t>(std::chrono::system_clock::to_time_t((std::chrono::system_clock::now())))); 
+	
 	while (true)
 	{
 		std::unique_lock<std::mutex> lock(resourceMutex);
-		std::cout << "Lock acquired by consumer..." << std::endl;
+		std::cout << "Lock acquired by consumer " << id << " ... " << std::endl;
 		size_t units = 0;
+		
 		cv.wait(lock, [&]()
 		{
 			units = getRandUnitSize(seed);
@@ -90,9 +106,18 @@ void consume()
 
 int main()
 {
-	std::thread producer(produce);
-	std::thread consumer(consume);
+	std::thread producers[nProd];
+	std::thread consumers[nCon];
 	
-	producer.join();
-	consumer.join();
+	for (int i = 0; i < nProd; ++i)
+		producers[i] = std::thread(produce, i);
+	
+	for (int i = 0; i < nProd; ++i)
+		consumers[i] = std::thread(consume, i);
+	
+	for (int i = 0; i < nProd; ++i)
+		producers[i].join();
+	
+	for (int i = 0; i < nProd; ++i)
+		consumers[i].join();
 }
