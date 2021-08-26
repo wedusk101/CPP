@@ -31,7 +31,7 @@ especially at lower resolutions. It is recommended to use the application in ben
 NOTE: 
 ----
 Running the application at high enough resolutions can be memory intensive. 
-To compile the program make sure your the compiler flags to generate vector code for your processor specific architecture 
+To compile the program make sure you set the compiler flags to generate vector code for your processor specific architecture 
 is enabled. The SIMD instructions used here need at least SSE4.1 to run. I have tested on GCC 9.3.0 with
 the flags "-fopenmp -pthread -O3 -std=c++11 -msse4.1" to enable and/or link OpenMP, pthreads, full optimizations, C++11 threads
 and SSE4.1 instruction set respectively.
