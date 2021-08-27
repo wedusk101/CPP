@@ -59,6 +59,7 @@ int main()
 	
 	std::cout << "Size of size_t: " << sizeof(size_t) << std::endl;
 	std::cout << "CPU cache line size: " << cache_line_size << std::endl; 
+	std::cout << "Number of logical processors detected: " << std::thread::hardware_concurrency() << std::endl;
 	
 	std::cout << "Please enter the sample size. Doubling the sample size quadruples the computation time."<<std::endl;
 	std::cin >> samples;
