@@ -38,7 +38,7 @@ int main(int argc, char *argv[])
 	{
 		std::cerr << "Invalid input.\n";
 		std::cerr << "Usage:\n";
-		std::cerr << "      compiled_binary_name -<size of list of numbers to sort>\n";
+		std::cerr << "      compiled_binary_name <size of list of numbers to sort>\n";
 		std::exit(EXIT_FAILURE);
 	}
 	
