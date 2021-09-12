@@ -1,4 +1,4 @@
-/*This piece of code tests out std::pakcahed_task in the Standard Library. Use the flag -pthread to link the POSIX thread library.*/
+/*This piece of code tests out std::packaged_task in the Standard Library. Use the flag -pthread to link the POSIX thread library.*/
 #include <functional>
 #include <thread>
 #include <iostream>
