@@ -118,12 +118,12 @@ int main()
 	for (int i = 0; i < nProd; ++i)
 		producers[i] = std::thread(produce, i);
 	
-	for (int i = 0; i < nProd; ++i)
+	for (int i = 0; i < nCon; ++i)
 		consumers[i] = std::thread(consume, i);
 	
 	for (int i = 0; i < nProd; ++i)
 		producers[i].join();
 	
-	for (int i = 0; i < nProd; ++i)
+	for (int i = 0; i < nCon; ++i)
 		consumers[i].join();
 }
