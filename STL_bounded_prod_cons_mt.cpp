@@ -34,7 +34,10 @@ void produce(int id)
 	size_t tid = std::hash<std::thread::id>()(std::this_thread::get_id());
 	
 	// seeds the rng using the thread id and current time
-	std::default_random_engine seed(tid * static_cast<uint64_t>(std::chrono::system_clock::to_time_t((std::chrono::system_clock::now())))); 
+	std::default_random_engine seed(tid * 
+									static_cast<uint64_t>
+									(std::chrono::system_clock::to_time_t
+									((std::chrono::system_clock::now())))); 
 	
 	while (true)
 	{
@@ -71,7 +74,10 @@ void consume(int id)
 	size_t tid = std::hash<std::thread::id>()(std::this_thread::get_id());
 	
 	// seeds the rng using the thread id and current time
-	std::default_random_engine seed(tid * static_cast<uint64_t>(std::chrono::system_clock::to_time_t((std::chrono::system_clock::now())))); 
+	std::default_random_engine seed(tid * 
+									static_cast<uint64_t>
+									(std::chrono::system_clock::to_time_t
+									((std::chrono::system_clock::now())))); 
 	
 	while (true)
 	{
