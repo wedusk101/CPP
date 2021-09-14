@@ -1,8 +1,8 @@
 /*
 
-The following piece of code presents a toy example of a thread pool based task system with the ability to 
-pause and resume tasks. The purpose of this program is to demonstrate a working albeit simple example of 
-an event loop along with the task system that can operate on arbitrary functions as per the users choice.
+The following piece of code presents a toy example of a thread pool based task system with the ability to pause
+and resume tasks. The purpose of this program is to demonstrate a working albeit simple example of an event loop
+along with the task system that can operate on arbitrary functions as per the users choice.
 
 Here is the general algorithm of the task system (ThreadPool class):
 
@@ -15,27 +15,34 @@ Here is the general algorithm of the task system (ThreadPool class):
 [7] After step [6], the thread goes to the waiting state again.
 [8] If the user chooses to shutdown the task system, the tasks are interrupted and the threads are joined.
 
+We have a threadpool that spawns N + 2 threads where N is the number of hardware threads available on the system.
+We can add any number of task functions to the queue of the threadpool. If there are more tasks available than 
+there are free threads available in the pool, the remaining tasks wait in the queue until the current batch of
+tasks finish execution.
+
 Apart from the ThreadPool class, there is also a simple event loop to handle concurrent user input. This event
 loop runs on a separate thread and queries the event queue from time to time to process any valid input event.
 It is responsible for signaling the task system to start, pause, resume or shutdown the execution of tasks.
 In a real system, these operations can be replaced by anything else like a mouse click or an incoming network
 packet etc. Since this technically requires a thread to wait on multiple condition variables (one for the thread
-pool and potentially one for the task callback function, this gets a bit tricky. On Windows this is natively allowed but
-it becomes harder on Linux. Here we solve the problem by simulating a state machine using multiple boolean variables
-that affect the execution state of the callback functions. 
+pool and potentially one for the task callback function, this gets a bit tricky. On Windows this is natively allowed
+but it becomes harder on Linux. Here we solve the problem by simulating a state machine using multiple shared boolean
+variables that affect the execution state of the callback functions.
 
-We have a couple of dummy functions that represent a producer and a consumer, but these can be replaced with any
-compute heavy task. They have a variable each that represent the execution state of the functions at any point in
-time. When execution is paused by the user and the nlater resumed, execution resumes from the point where it was interrupted.
-These variables act as checkpoints for this resume operation. In a real system, these variables will be replaced by whatever
-state the application has that needs to be persisted across cycles of pause/resume operations. For e.g. a time point in a music
-player playing an MP3. This execution state could theorectically even be serialized along with the queue of saved tasks
-so that the resume operation can be achieved even across different sessions of the application. This behavior is called
-re-entrant programming. This entire example should act as a starting design guide for implementing the ideas in a more complex
-real world application.
+We have a couple of functions that represent a producer and a consumer, but these can be replaced with any compute
+heavy task. They share a resource variable (the shared buffer) that represents the execution state of the functions at 
+any point in time. Instead of waiting on condition variables, the worker threads wait on aquiring the lock on the 
+shared buffer in a spinlock. When execution is paused by the user and then later resumed, execution resumes from the
+point where it was interrupted. The atomic variable "resource", therefores also acts as a checkpoint for this resume
+operation. In a real system, such variables will be replaced by whatever state the application has that needs to be
+persisted across cycles of pause/resume operations. For e.g. a time point in a music player playing an MP3. This
+execution state could theorectically be serialized along with the queue of saved tasks so that the resume operation
+can be achieved even across different sessions of the application. This behavior is called re-entrant programming.
+The demo presented here should act as a starting design guide for implementing the ideas in a more complex real
+world application.
 
-To compile the code using gcc/g++, use the flags "-pthread" and "-std=c++14", to link the POSIX threads library and enable
-C++14 standard respectively.
+To compile the code using GCC, use the flags "-pthread" and "-std=c++14", to link the POSIX threads library and 
+enable C++14 standard respectively.
 
 */
 
@@ -51,55 +58,112 @@ C++14 standard respectively.
 #include <random>
 
 // no. of threads to be used for producers and consumers
-const int nProd = 2;
-const int nCon = 2;
+const int nProd = 4;
+const int nCon = 4;
 
-// variables to represent state of the callback functions (producer-consumer)
-size_t nProduced = 0;
-size_t nConsumed = 0;
+std::atomic<int> resource(1); // simulates the shared buffer of produced resource
+const int MAXSIZE = 10; // maximum value of the buffer
+std::mutex resourceMutex;
 
-std::mutex streamMutex;
 bool shuttingDown = false;
 bool paused = false;
 bool resumed = false;
 
-// dummy producer subroutine
+// returns a random unit size in (0, MAXSIZE) to produce or consume
+size_t getRandUnitSize(std::default_random_engine &seed)
+{
+	std::uniform_real_distribution<double> rnd(0.0, 1.0);
+	double trial = rnd(seed);
+	return static_cast<size_t>(trial * MAXSIZE);
+}
+
+// producer subroutine
 void produce(int id)
 {
-	if (resumed)
+	if (resumed) // there's a bug here. This should be done for each task using it's own TaskState
 		std::cout << "Resuming producer...\n";
+		
+	size_t tid = std::hash<std::thread::id>()(std::this_thread::get_id());
+	
+	// seeds the rng using the thread id and current time
+	std::default_random_engine seed(tid * 
+									static_cast<uint64_t>
+									(std::chrono::system_clock::to_time_t
+									((std::chrono::system_clock::now()))));
 		
 	while (!shuttingDown && !paused)
 	{
-		++nProduced; 
-		std::unique_lock<std::mutex> lock(streamMutex);
-		std::cout << "Thread " << id << " producing..." << std::endl;
-		std::cout << "Units produced: " << nProduced << std::endl;
-		lock.unlock();
-		std::this_thread::sleep_for(std::chrono::seconds(1));
+		std::unique_lock<std::mutex> lock(resourceMutex);
+		std::cout << "Lock acquired by producer " << id << " ... " << std::endl;
+		size_t units = 0;
+		 
+		units = getRandUnitSize(seed); // produce a random number of units
+		std::cout << "Available: " << resource << std::endl;
+		std::cout << "Units to produce: " << units << std::endl;
+		int newAmount = resource.load() + units;
+		std::cout << "Projected amount after production: " << newAmount << std::endl;
+		
+		bool predicate = (newAmount <= MAXSIZE);		
+		if (!predicate)
+		{
+			std::cout << "Produced resource limit reached. Sleeping...\n\n" << std::endl;
+			lock.unlock();
+			std::this_thread::sleep_for(std::chrono::seconds(1));
+			continue;
+		}
+		
+		resource += units;
+		std::cout << "Produced " << units << " units." << std::endl;
+		std::cout << "Total: " << resource << "\n\n" << std::endl;
+		lock.unlock();		
 	}
 	
-	if (paused)
+	if (paused) // there's a bug here. This should be done for each task using it's own TaskState
 		std::cout << "Pausing producer...\n";
 }
 
-// dummy consumer subroutine
+// consumer subroutine
 void consume(int id)
 {
-	if (resumed)
+	if (resumed) // there's a bug here. This should be done for each task using its own TaskState
 		std::cout << "Resuming consumer...\n";
+		
+	size_t tid = std::hash<std::thread::id>()(std::this_thread::get_id());
+	
+	// seeds the rng using the thread id and current time
+	std::default_random_engine seed(tid * 
+									static_cast<uint64_t>
+									(std::chrono::system_clock::to_time_t
+									((std::chrono::system_clock::now()))));
 		
 	while (!shuttingDown && !paused)
 	{
-		++nConsumed;
-		std::unique_lock<std::mutex> lock(streamMutex);
-		std::cout << "Thread " << id << " consuming..." << std::endl;
-		std::cout << "Units consumed: " << nConsumed << std::endl;
-		lock.unlock();
-		std::this_thread::sleep_for(std::chrono::seconds(1));
+		std::unique_lock<std::mutex> lock(resourceMutex);
+		std::cout << "Lock acquired by consumer " << id << " ... " << std::endl;
+		size_t units = 0;
+		
+		units = getRandUnitSize(seed); // consume a random number of units
+		std::cout << "Available: " << resource << std::endl;
+		std::cout << "Units to consume: " << units << std::endl;
+		int newAmount = resource.load() - units;
+		std::cout << "Projected amount after consumption: " << newAmount << std::endl;
+		
+		bool predicate = (newAmount >= 0);
+		if (!predicate)
+		{
+			std::cout << "Not enough resources to consume. Sleeping...\n\n" << std::endl;
+			lock.unlock();
+			std::this_thread::sleep_for(std::chrono::seconds(1));
+			continue;
+		}
+
+		resource -= units;
+		std::cout << "Consumed " << units << " units." << std::endl;
+		std::cout << "Total: " << resource << "\n\n" << std::endl;
+		lock.unlock();		
 	}
 	
-	if (paused)
+	if (paused) // there's a bug here. This should be done for each task using its own TaskState
 		std::cout << "Pausing consumer...\n";
 }
 
@@ -221,6 +285,7 @@ public:
 		
 		isPaused = true;
 		paused = true;
+		resumed = false;
 		waitCV.notify_all();
 	}
 	
@@ -246,6 +311,7 @@ public:
 	void shutdown()
 	{
 		isShuttingDown = true;
+		shuttingDown = true;
 		
 		while (numFinishedThreads != poolSize)
 			waitCV.notify_all();
@@ -278,7 +344,7 @@ public:
 	
 private:
 
-	// the primary function available for orchestrating the task system
+	// the primary function for orchestrating the task system
 	void wait()
 	{
 		std::unique_ptr<ITask> job;
@@ -287,8 +353,7 @@ private:
 		{
 			if (isShuttingDown)
 			{
-				++numFinishedThreads;
-				shuttingDown = true;
+				++numFinishedThreads;				
 				break;
 			}
 			else if (!isQueueEmpty() && isStarted && !isPaused)
@@ -319,12 +384,13 @@ private:
 				if (isPaused)
 					reentrantQueue.push(std::move(job));
 			}
-			else
+			else // go to waiting state
 			{
 				std::unique_lock<std::mutex> lock(waitMutex);
 				waitCV.wait(lock, [&, this]()
 				{
-					return !isQueueEmpty() || isShuttingDown || !isPaused;
+					// conditions for waking up the threads
+					return !isPaused && (!isQueueEmpty() || resumedTasksAvailable()) || isShuttingDown;
 				});
 			}
 		}
