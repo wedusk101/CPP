@@ -64,6 +64,7 @@ void produce(int id)
 		resource += units;
 		std::cout << "Produced " << units << " units." << std::endl;
 		std::cout << "Total: " << resource << "\n\n" << std::endl;
+		lock.unlock();
 		cv.notify_one();
 		std::this_thread::sleep_for(std::chrono::seconds(1));
 	}
@@ -104,6 +105,7 @@ void consume(int id)
 		resource -= units;
 		std::cout << "Consumed " << units << " units." << std::endl;
 		std::cout << "Total: " << resource << "\n\n" << std::endl;
+		lock.unlock();
 		cv.notify_one();
 		std::this_thread::sleep_for(std::chrono::seconds(1));
 	}
