@@ -1,6 +1,8 @@
-/*The following code implements the exceedingly inefficient bogo sort (also known as slow sort or stupid sort) algorithm
-to sort a list of integers in ascending order. It has a factorial class complexity. Since this is the non-deterministic
-version of the algorithm, there is a chance that it may never finish. This is not a bug.*/
+/*The following code implements the exceedingly inefficient bogo sort (also known as slow sort or
+stupid sort) algorithm to sort a list of integers in ascending order. It has a factorial class
+worst-case complexity. Since this is the non-deterministic version of the algorithm, there is a
+chance that it may never finish. This is not a bug.*/
+
 #include <iostream>
 #include <random>
 #include <ctime>
