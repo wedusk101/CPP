@@ -2,6 +2,7 @@
 #include <iostream>
 #include <chrono>
 #include <thread>
+#include <algorithm>
 
 void sleepSort(int *, int);
 void printElement(int);
@@ -34,8 +35,7 @@ void sleepSort(int *input, int size) // for each element, a new thread is create
 {
 	std::thread sortThreads[size];
 	for(int i = 0; i < size; i++)
-		if(input[i] < minVal)
-			minVal = input[i]; 
+		minVal = std::min(input[i], minVal);
 	minVal = std::abs(minVal); // for handling negative integers - used to find the absolute value of the least negative integer (if any) 
 	for(int i = 0; i < size; i++)
 		sortThreads[i] = std::thread(printElement, input[i] + minVal);	
