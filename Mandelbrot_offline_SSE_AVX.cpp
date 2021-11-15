@@ -40,14 +40,19 @@ NOTE:
 Running the application at high enough resolutions can be memory intensive. 
 To compile the program make sure to set the appropriate compiler flags to generate vector code for your 
 processor specific architecture The SIMD instructions used here support both SSE and AVX, depending on
-the platform of choice. I have tested on GCC 9.4.0 with the following flags: 
+the platform of choice. Since AVX uses 8 wide registers whereas SSE uses 4 wide ones, the AVX code
+should be roughly twice as fast when tested on the same system. 
+
+I have tested on GCC 9.4.0 with the following flags: 
 
 SSE: "-fopenmp -pthread -O3 -std=c++11 -msse4.1 -DISA_SSE" 
+----------------------------------------------------------
 
 to enable and/or link OpenMP, pthreads, full optimizations, C++11 threads,
 SSE4.1 instruction set respectively.
 
 AVX: "-fopenmp -pthread -O3 -std=c++11 -mavx2 -mfma -DISA_AVX" 
+--------------------------------------------------------------
 
 to enable and/or link OpenMP, pthreads, full optimizations, C++11 threads,
 AVX2 instruction set and Fused Multiply Add respectively.
