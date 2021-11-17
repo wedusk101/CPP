@@ -997,7 +997,7 @@ int main()
 	else
 	{
 		std::cout << "Invalid choice! Aborting...\n";
-		exit(EXIT_FAILURE);
+		std::exit(EXIT_FAILURE);
 	}
 	
 	auto diffMSec = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
