@@ -56,6 +56,7 @@ enable C++14 standard respectively.
 #include <functional>
 #include <atomic>
 #include <random>
+#include <vector>
 
 // no. of threads to be used for producers and consumers
 const int nProd = 4;
