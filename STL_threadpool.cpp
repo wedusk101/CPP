@@ -421,7 +421,7 @@ int main()
 	std::queue<int> eventQueue;
 	ThreadPool threadPool;
 	threadPool.init();
-	int event = 0, input = 0, tmp = 0;	
+	int event = 0, input = 0;	
 	
 	for (int i = 0; i < nProd; ++i)
 	{
