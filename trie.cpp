@@ -119,42 +119,39 @@ public:
 	}
 	
 	void printInOrder() const
-	{
-		return;
-		
+	{	
 		for (size_t i = 0; i < ALPHABET_SIZE; ++i)
-		{
-			std::cout << "Starting print... " << i << std::endl;
+		{		
 			if (root->children[i])
-			{				
-				this->printNodeRecursive(root->children[i]);
-				std::cout << "\n";
+			{	
+				word.clear();		
+				this->constructWords(root->children[i]);
+				std::cout << word << std::endl;
 			}
 		}
 	}
 
 private:
 
-	void printNodeRecursive(Node* rootPtr) const
+	void constructWords(const Node* rootPtr) const
 	{
-		if (!rootPtr || rootPtr->isTerminal)
+		if (!rootPtr)
 			return;
 		
-		Node* bak = rootPtr;
-		Node* tmp = rootPtr;	
-		std::cout << "Printed" << std::endl;
-		std::cout << tmp->value;
-		
-		for (size_t i = 0; i < ALPHABET_SIZE; ++i)
+		if (rootPtr->isTerminal)
 		{
-			tmp = tmp->children[i];		
-			printNodeRecursive(tmp);
+			word += rootPtr->value;
+			return;
 		}
 		
-		rootPtr = bak;
+		word += rootPtr->value;
+		
+		for (size_t i = 0; i < ALPHABET_SIZE; ++i)
+			constructWords(rootPtr->children[i]);
 	}
 	
 	Node *root = nullptr;
+	mutable std::string word;
 };
 
 int main()
