@@ -2,6 +2,7 @@
 
 #include <iostream>
 #include <string>
+#include <queue>
 
 #define ALPHABET_SIZE 128
 
@@ -119,39 +120,64 @@ public:
 	}
 	
 	void printInOrder() const
-	{	
+	{
+		std::queue<Node*> nodeQueue;
+		
+		// add nodes connected to root
 		for (size_t i = 0; i < ALPHABET_SIZE; ++i)
-		{		
+		{
 			if (root->children[i])
-			{	
-				word.clear();		
-				this->constructWords(root->children[i]);
-				std::cout << word << std::endl;
+				nodeQueue.push(root->children[i]);
+		}
+		
+		while (!nodeQueue.empty())
+		{
+			isWord = false;
+			Node* node = nodeQueue.front();
+			for (size_t i = 0; i < ALPHABET_SIZE; ++i)
+			{
+				if (node->children[i])
+				{
+					nodeQueue.push(node->children[i]);
+					
+					if (i > 0)
+						prefix = suffix;
+				}
 			}
+			
+			suffix.clear();
+			this->updateSuffix(node);
+			
+			if (isWord)
+				std::cout << prefix + suffix << std::endl;
+			
+			nodeQueue.pop();
 		}
 	}
-
+	
 private:
 
-	void constructWords(const Node* rootPtr) const
-	{
-		if (!rootPtr)
-			return;
-		
+	void updateSuffix(const Node* rootPtr) const
+	{	
 		if (rootPtr->isTerminal)
 		{
-			word += rootPtr->value;
+			suffix += rootPtr->value;
+			isWord = true;
 			return;
 		}
 		
-		word += rootPtr->value;
+		suffix += rootPtr->value;
 		
 		for (size_t i = 0; i < ALPHABET_SIZE; ++i)
-			constructWords(rootPtr->children[i]);
+			if (rootPtr->children[i])
+				updateSuffix(rootPtr->children[i]);
 	}
 	
 	Node *root = nullptr;
-	mutable std::string word;
+	
+	mutable bool isWord = false;
+	mutable std::string prefix;
+	mutable std::string suffix;	
 };
 
 int main()
