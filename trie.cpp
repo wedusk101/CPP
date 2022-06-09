@@ -82,6 +82,9 @@ public:
 		root->isTerminal = true;	
 		root = bak;
 		
+		if (isInserted)
+			++entryCount;
+		
 		return isInserted;
 	}
 	
@@ -116,11 +119,33 @@ public:
 		root->isTerminal = false;
 		root = bak;
 		
+		--entryCount;
 		return true;
 	}
 	
+	/*
+	
 	void printInOrder() const
 	{
+		if (this->isEmpty())
+		{
+			std::cout << "No entries in the trie. Nothing to display." << std::endl;
+			return;
+		}
+
+		displayPreorder(root);
+	}
+	
+	*/
+	
+	void printInOrder() const
+	{
+		if (this->isEmpty())
+		{
+			std::cout << "No entries in the trie. Nothing to display." << std::endl;
+			return;
+		}
+		
 		std::queue<Node*> nodeQueue;
 		
 		// add nodes connected to root
@@ -141,7 +166,7 @@ public:
 					nodeQueue.push(node->children[i]);
 					
 					if (i > 0)
-						prefix = suffix;
+						prefix += node->value;
 				}
 			}
 			
@@ -153,9 +178,15 @@ public:
 			
 			nodeQueue.pop();
 		}
-	}
+		
+	} 
 	
 private:
+
+	bool isEmpty() const
+	{
+		return (entryCount == 0);
+	}				
 
 	void updateSuffix(const Node* rootPtr) const
 	{	
@@ -173,11 +204,35 @@ private:
 				updateSuffix(rootPtr->children[i]);
 	}
 	
+	/*
+	
+	void displayPreorder(Node* rootPtr) const
+	{
+		if (!rootPtr)
+		{
+			word += rootPtr->value;
+			
+			if (rootPtr->isTerminal)
+			{
+				std::cout << word << std::endl;
+				return;
+			}
+			
+			for (size_t i = 0; i < ALPHABET_SIZE; ++i)
+				displayPreorder(rootPtr->children[i]);
+		}
+	}		
+	
+	*/
+	
 	Node *root = nullptr;
+	
+	size_t entryCount = 0;
 	
 	mutable bool isWord = false;
 	mutable std::string prefix;
 	mutable std::string suffix;	
+	// mutable std::string word;
 };
 
 int main()
@@ -195,7 +250,7 @@ int main()
 		std::cout << "1. Insert a string." << std::endl;
 		std::cout << "2. Find a string." << std::endl;
 		std::cout << "3. Remove a string." << std::endl;
-		std::cout << "4. Display the contents of the trie in alphabetical order." << std::endl;
+		std::cout << "4. Display the contents of the trie in alphabetical order." << std::endl; // TODO
 		std::cout << "0. EXIT." << std::endl;
 		std::cout << "\n------------------------------\n" << std::endl;
 		
