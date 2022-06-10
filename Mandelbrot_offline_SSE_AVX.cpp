@@ -58,9 +58,9 @@ to enable and/or link OpenMP, pthreads, full optimizations, C++11 threads,
 AVX2 instruction set and Fused Multiply Add respectively.
 
 The compiler definitions ISA_SSE and ISA_AVX, enable/disable platform specific intrinsics code.
-Note that the SSE code will run on a system that supports AVX but not the AVX code will not run
+Note that the SSE code will run on a system that supports AVX but the AVX code will not run
 on a system that *only* supports upto SSE. Also, SSE and AVX *cannot* be enabled at the same time.
-This is be design. In case one needs to test out both the implementations, two binaries need to be
+This is by design. In case one needs to test out both the implementations, two binaries need to be
 compiled for SSE and AVX using the flags -DISA_SSE and -DISA_AVX respectively.
 
 TODO: The AVX implementation has slight rendering differences compared to the non-SIMD OpenMP and
