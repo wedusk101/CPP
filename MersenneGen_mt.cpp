@@ -1,12 +1,15 @@
-/*The following code generates Mersenne Prime numbers using trial division method. 
+/* 
+
+The following code generates Mersenne Prime numbers using trial division method. 
 The user inputs the number of Mersenne Primes to display.A Mersenne prime is of 
-the form M = (2^N) - 1 where M is a prime number and N is a positive integer and 
-is prime. Please note that due to the very nature of Mersenne Primes, which are 
-exceedingly rare, this program is very slow for anything beyond very small input 
-sizes.Handling large numbers like Mersenne Primes require special methods not 
-implemented here. The prime generator used here can be replaced by something like
-the Lucas_lehmer test for greater efficiency. This implementation uses multithreading
-for better performance.*/
+the form M = (2^N) - 1 where M is a prime number and N is a positive integer. 
+Please note that due to the very nature of Mersenne Primes, which are exceedingly rare,
+this program is very slow for anything beyond very small input sizes. Handling large 
+numbers like Mersenne Primes require special methods not implemented here. The prime 
+generator used here can be replaced by something like the Lucas_lehmer test for
+greater efficiency. This implementation uses multithreading for better performance.
+
+*/
 
 #include <iostream>
 #include <cmath>
@@ -14,8 +17,10 @@ for better performance.*/
 #include <chrono>
 #include <vector>
 #include <algorithm>
+#include <mutex>
 
 std::vector<size_t> mersennes;
+std::mutex vecMutex;
 
 bool isMersenne(size_t m) 
 {
@@ -48,7 +53,10 @@ void generateMersennePrimes(size_t start, size_t range)
 	for (size_t i = start; i < range; i++)
 	{
 		if(isPrime(i) && isMersenne(i))
+		{
+			std::unique_lock<std::mutex> lock(vecMutex);
 			mersennes.push_back(i);
+		}
 	}
 }
 
