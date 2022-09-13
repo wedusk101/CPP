@@ -50,7 +50,7 @@ int main(int argc, char *argv[])
 	std::cout << "\nGenerating the list of random numbers...\n\n";
 	
 	std::mt19937 generator;	
-	std::generate(vecSerial.begin(), vecSerial.end(), [&generator]() {
+	std::generate(std::execution::par_unseq, vecSerial.begin(), vecSerial.end(), [&generator]() {
 		std::uniform_int_distribution<uint16_t> dist(0, std::numeric_limits<uint16_t>::max());
 		return dist(generator);
 	}); // fill up the vector using random positive integers
