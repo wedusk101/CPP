@@ -24,9 +24,9 @@ if it runs out of memory, the program will segfault.
 
 #include "omp.h"
 
-std::vector<size_t> countingSort(const std::vector<uint16_t>& in, size_t max)
+std::vector<uint16_t> countingSort(const std::vector<uint16_t>& in, size_t max)
 {
-	std::vector<size_t> out;
+	std::vector<uint16_t> out;
 	out.reserve(in.size());
 	
 	std::vector<int> freqList(max + 1);			
@@ -52,31 +52,10 @@ std::vector<size_t> countingSort(const std::vector<uint16_t>& in, size_t max)
 	return out;
 }
 
-std::vector<size_t> countingSortParallel(const std::vector<uint16_t>& in, size_t max)
+std::vector<uint16_t> countingSortParallel(const std::vector<uint16_t>& in, size_t max)
 {
-	std::vector<size_t> out;
-	out.reserve(in.size());
-	
-	std::vector<int> freqList(max + 1);		
-	for (size_t i = 0; i < max; ++i)
-		freqList[i] = 0;
-	
-	// calc frequency
-	for (size_t i = 0; i < in.size(); ++i)
-		freqList[in[i]]++;
-	
-	for (size_t i = 0; i < freqList.size(); ++i)
-	{
-		if (freqList[i] == 0)
-			continue;
-		else
-		{
-			for (int j = 0; j < freqList[i]; ++j)
-				out.push_back(i);
-		}
-	}
-			
-	return out;
+	// TODO
+	return in;
 }
 
 int main(int argc, char** argv)
@@ -112,7 +91,7 @@ int main(int argc, char** argv)
 	std::cout << "Executing serial counting sort...\n";
 	auto start = std::chrono::high_resolution_clock::now();
 	
-	std::vector<size_t> out = countingSort(input, max);
+	std::vector<uint16_t> out = countingSort(input, max);
 	
 	auto stop = std::chrono::high_resolution_clock::now();
 	auto diff = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
