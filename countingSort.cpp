@@ -6,6 +6,10 @@ Running the program requires passing the size of the list of numbers to sort as 
 argument. Please note, speedups due to parallel algorithms will only be noticeable for larger
 sizes of input.
 
+Compilation requires setting the flag "-std=c++17" to enable C++17
+support along with the flag "-ltbb" to link the TBB library. Parallel generation of random numbers
+requires compiler support for C++17 Standard Library parallel algorithms.
+
 NOTE: Depending on the size of the list to be sorted, this program can consume a significant amount
 of memory. Although I have set the vector to use uint16_t to conserve memory, this is still something
 to keep in mind. Since the program is making a copy of the list for the serial and parallel executions,
@@ -20,9 +24,6 @@ if it runs out of memory, the program will segfault.
 #include <iostream>
 #include <random>
 #include <execution>
-#include <thread>
-
-#include "omp.h"
 
 std::vector<uint16_t> countingSort(const std::vector<uint16_t>& in, size_t max)
 {
@@ -52,12 +53,6 @@ std::vector<uint16_t> countingSort(const std::vector<uint16_t>& in, size_t max)
 	return out;
 }
 
-std::vector<uint16_t> countingSortParallel(const std::vector<uint16_t>& in, size_t max)
-{
-	// TODO
-	return in;
-}
-
 int main(int argc, char** argv)
 {
 	if (argc == 1)
@@ -71,9 +66,7 @@ int main(int argc, char** argv)
 	size_t size = std::atoi(argv[1]);
 	std::vector<uint16_t> input(size);
 	
-	std::cout << "Number of logical processors detected: " << std::thread::hardware_concurrency() << std::endl;
-	std::cout << "\nGenerating the list of random numbers...\n\n";
-	
+	std::cout << "\nGenerating the list of random numbers...\n\n";	
 	std::random_device r;
 	std::seed_seq seed{r()};
 	std::mt19937 generator(seed);	
@@ -82,13 +75,11 @@ int main(int argc, char** argv)
 		return dist(generator);
 	}); // fill up the vector using random positive integers
 	
-	std::vector<uint16_t> inputParallel(input);
-	
 	size_t max = 0;
 	for (const auto& i : input)
 		max = (i >= max) ? i : max;
 	
-	std::cout << "Executing serial counting sort...\n";
+	std::cout << "Executing counting sort...\n";
 	auto start = std::chrono::high_resolution_clock::now();
 	
 	std::vector<uint16_t> out = countingSort(input, max);
@@ -96,17 +87,7 @@ int main(int argc, char** argv)
 	auto stop = std::chrono::high_resolution_clock::now();
 	auto diff = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
 	
-	std::cout << "Time taken for serial sort: " << diff.count() << " milliseconds.\n" <<std::endl;
-	
-	std::cout << "Executing parallel counting sort...\n";
-	start = std::chrono::high_resolution_clock::now();
-	
-	out = countingSort(inputParallel, max);
-	
-	stop = std::chrono::high_resolution_clock::now();
-	diff = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
-	
-	std::cout << "Time taken for parallel sort: " << diff.count() << " milliseconds.\n" <<std::endl;
+	std::cout << "Time taken for sort: " << diff.count() << " milliseconds.\n" <<std::endl;
 	
 	/*
 	
