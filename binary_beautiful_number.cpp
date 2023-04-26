@@ -1,6 +1,6 @@
 /*
-	A number is considered a beautiful number if its binary representation has at least one zero surrounded  by 1s 
-	and at most three consecutive zeroes surrounded by ones. 
+	A number is considered a beautiful number if its binary representation has at least one zero (excluding leading zeroes) 
+	and at most three zeroes. 
 	
 	e.g. Binary(5) = 101 => Beautiful but Binary(67) = 1000011 => Ugly
 */
