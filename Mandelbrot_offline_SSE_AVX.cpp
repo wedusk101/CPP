@@ -950,12 +950,14 @@ int main()
 			
 			if (useSIMD)
 			{
-#ifdef ISA_SSE
+#if ISA_SSE
 				drawMandelbrotOMPSSE(width, height, isBenchmark);
-#endif
-
-#ifdef ISA_AVX
+#elif ISA_AVX
 				drawMandelbrotOMPAVX(width, height, isBenchmark);
+#else
+				std::cerr << "Compilation error. Please specify the correct instruction set architecture "
+                             "during compilation. Please see the documentation in the source file. Aborting..." << std::endl;
+				std::exit(1);
 #endif
 			}
 			else
@@ -981,12 +983,14 @@ int main()
 		
 		if (useSIMD)
 		{	
-#ifdef ISA_SSE
+#if ISA_SSE
 				drawMandelbrotSSE(width, height, isBenchmark);
-#endif
-
-#ifdef ISA_AVX
+#elif ISA_AVX
 				drawMandelbrotAVX(width, height, isBenchmark);
+#else
+				std::cerr << "Compilation error. Please specify the correct instruction set architecture "
+                             "during compilation. Please see the documentation in the source file. Aborting..." << std::endl;
+				std::exit(1);
 #endif
 		}
 		else
