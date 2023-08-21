@@ -24,7 +24,7 @@ struct Node
 			children[i] = nullptr;
 	}
 	
-	~Node()
+	virtual ~Node()
 	{
 		for (size_t i = 0; i < ALPHABET_SIZE; ++i)
 			delete children[i];
