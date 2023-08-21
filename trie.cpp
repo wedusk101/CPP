@@ -257,7 +257,7 @@ int main()
 		std::cout << "Please enter your choice: " << std::endl;
 		std::cin >> choice;
 		
-		switch(choice)
+		switch (choice)
 		{
 			case 1:			
 				std::cout << "Please enter a string to insert." << std::endl;
