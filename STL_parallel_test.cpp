@@ -4,15 +4,17 @@ This *requires* compiler support for the feature which is still pretty nascent a
 I have tested it with G++ 9.3.0 on Ubuntu 20.04 LTS running under WSL2 on Windows 10 Pro x64,
 build 19042 with libtbb2 (= 2020.1-2). Older versions of Ubuntu don't seem to have Intel oneAPI
 TBB 2018 or greater which is required for the PSTL back-end used for the Parallel STL
-implementation of GCC. Compilation requires setting the flag "-std=c++17" to enable C++17
-support along with the flag "-ltbb" to link the TBB library.
+implementation of GCC. 
+
+Compilation requires setting the flag "-std=c++17" to enable C++17 support along with the
+flag "-ltbb" to link the TBB library.
 
 Running the program requires passing the size of the list of numbers to sort as a command line 
 argument. Please note, speedups due to parallel algorithms will only be noticeable for larger
 sizes of input.
 
 NOTE: Depending on the size of the list to be sorted, this program can consume a significant amount
-of memory. Although I have set the vector to use uint16_t to conserve memory, this is still something
+of memory. Although I have set the vector to use KEY_TYPE to conserve memory, this is still something
 to keep in mind. Since the program is making a copy of the list for the serial and parallel executions,
 if it runs out of memory, the program will segfault.
 */
@@ -27,6 +29,12 @@ if it runs out of memory, the program will segfault.
 #include <cstddef>
 #include <thread>
 #include <iomanip>
+
+#define UINT8 uint8_t
+#define UINT16 uint16_t
+#define UINT32 uint32_t
+
+#define KEY_TYPE UINT8
 
 int main(int argc, char *argv[])
 {
@@ -43,7 +51,7 @@ int main(int argc, char *argv[])
 	}
 	
 	size_t size = std::atoi(argv[1]);
-	std::vector<uint16_t> vecSerial(size);	// reserve space for vector according to user supplied argument
+	std::vector<KEY_TYPE> vecSerial(size);	// reserve space for vector according to user supplied argument
 	
 	
 	std::cout << "Number of logical processors detected: " << std::thread::hardware_concurrency() << std::endl;
@@ -51,11 +59,11 @@ int main(int argc, char *argv[])
 	
 	std::mt19937 generator;	
 	std::generate(std::execution::par_unseq, vecSerial.begin(), vecSerial.end(), [&generator]() {
-		std::uniform_int_distribution<uint16_t> dist(0, std::numeric_limits<uint16_t>::max());
+		std::uniform_int_distribution<KEY_TYPE> dist(0, std::numeric_limits<KEY_TYPE>::max());
 		return dist(generator);
 	}); // fill up the vector using random positive integers
 	
-	std::vector<uint16_t> vecParallel(vecSerial);	// make a copy of the vector for the parallel pass
+	std::vector<KEY_TYPE> vecParallel(vecSerial);	// make a copy of the vector for the parallel pass
 	
 	std::cout << "Executing serial sort...\n";
 	auto start = std::chrono::high_resolution_clock::now();
