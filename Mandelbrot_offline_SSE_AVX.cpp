@@ -37,11 +37,21 @@ application in benchmark mode to disable file I/O for performance measurement.
 
 NOTE: 
 ----
-Running the application at high enough resolutions can be memory intensive. 
-To compile the program make sure to set the appropriate compiler flags to generate vector code for your 
+
+[1] Running the application at high enough resolutions can be memory intensive. 
+
+[2] To compile the program make sure to set the appropriate compiler flags to generate vector code for your 
 processor specific architecture The SIMD instructions used here support both SSE and AVX, depending on
 the platform of choice. Since AVX uses 8 wide registers whereas SSE uses 4 wide ones, the AVX code
 should be roughly twice as fast when tested on the same system. 
+
+[3] If this program is being run on a system with more than 64 logical cores under WSL please
+see https://github.com/sirredbeard/WSL2-more-cores. If this program is run under Windows on 
+a system that has more than 64 logial cores, special changes need to made concering processor
+groups. Such features have not been implemented yet.
+
+COMPILATION DETAILS:
+-------------------
 
 I have tested on GCC 9.4.0 with the following flags: 
 
@@ -58,7 +68,7 @@ to enable and/or link OpenMP, pthreads, full optimizations, C++11 threads,
 AVX2 instruction set and Fused Multiply Add respectively.
 
 The compiler definitions ISA_SSE and ISA_AVX, enable/disable platform specific intrinsics code.
-Note that the SSE code will run on a system that supports AVX but the AVX code will not run
+Note that the SSE code will run on a system that supports AVX but the AVX code will *not* run
 on a system that *only* supports upto SSE. Also, SSE and AVX *cannot* be enabled at the same time.
 This is by design. In case one needs to test out both the implementations, two binaries need to be
 compiled for SSE and AVX using the flags -DISA_SSE and -DISA_AVX respectively.
