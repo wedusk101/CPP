@@ -924,17 +924,16 @@ int main()
 	int width = 0, height = 0, isBenchmark = 0, useSIMD = 0;
 	char ch = ' ';	
 	std::cout << "This program renders the Mandelbrot set in a non real-time context.\n";
-	std::cout << "Please enter the desired resolution in pixels. Width, followed by height.\n";
+	std::cout << "Please enter the desired resolution in pixels. Width (then press return), followed by height (press return).\n";
 	std::cin >> width;
 	std::cin >> height;
 	std::cout << "Please enter the desired number of iterations to calculate the Mandelbrot set.\n";
 	std::cin >> MAX_ITR;
+	std::cout << "Number of logical processors detected: " << std::thread::hardware_concurrency() << std::endl;
 	std::cout << "Enable multithreading? (Y/N)\n";
 	std::cin >> ch;
 	std::cout << "Enable benchmark mode? Disables file output for more accurate performance measurement. (1 = Yes / 0 = No[default])\n";
-	std::cin >> isBenchmark;	
-	
-	std::cout << "Number of logical processors detected: " << std::thread::hardware_concurrency() << std::endl;
+	std::cin >> isBenchmark;		
 	
 	std::chrono::time_point<std::chrono::high_resolution_clock> start, stop;
 	
