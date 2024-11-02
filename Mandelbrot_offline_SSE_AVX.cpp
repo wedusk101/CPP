@@ -934,6 +934,8 @@ int main()
 	std::cout << "Enable benchmark mode? Disables file output for more accurate performance measurement. (1 = Yes / 0 = No[default])\n";
 	std::cin >> isBenchmark;	
 	
+	std::cout << "Number of logical processors detected: " << std::thread::hardware_concurrency() << std::endl;
+	
 	std::chrono::time_point<std::chrono::high_resolution_clock> start, stop;
 	
 	if (ch == 'y' || ch == 'Y')
