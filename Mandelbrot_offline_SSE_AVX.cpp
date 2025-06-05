@@ -239,146 +239,17 @@ void evalMandel(Complex &z, const Complex &c)
 	z.b = 2 * zReal * zImaginary + c.b;
 }
 
-/********************************************INTRINSICS BEGIN**************************************/
+/********************************************INTRINSICS BEGIN*****************************************/
 
-/////////////////////////////////////////////// SSE BEGIN //////////////////////////////////////////
+/////////////////////////////////////////////// SSE BEGIN /////////////////////////////////////////////
 
 #ifdef ISA_SSE
 
-void drawMandelbrotSSE(const int &width, const int &height, int isBenchmark)
+void drawMandelbrotOMPSSE(const int &width, const int &height, int isBenchmark, uint32_t nThreads)
 {
 	uint32_t bufferSize = width * height;
 	Color3f *frameBuffer = new Color3f[bufferSize];
 	float invW = (1./ width) * 3.5, invH = (1./ height) * 2;
-	
-	// 32-bit float registers
-	__m128 _zr, _zi, _cr, _ci, _a, _b, _zr2, _zi2, _const2, _invw, _invh, _const2p5,
-			_const1, _mod, _const4, _maskwhile, _xf, _yf; 
-	
-	// 32-bit signed int registers
-	__m128i _masknumitr, _itr, _constmaxitr, _inc1i, _const1i;
-	
-	// initialize floating point registers
-	_const1 = _mm_set1_ps(1.0);
-	_const2 = _mm_set1_ps(2.0);
-	_const4 = _mm_set1_ps(4.0);
-	_const2p5 = _mm_set1_ps(2.5);
-	
-	_invw = _mm_set1_ps(invW);
-	_invh = _mm_set1_ps(invH);	
-	
-	// initialize integer registers
-	_constmaxitr = _mm_set1_epi32(MAX_ITR);	
-	_const1i = _mm_set1_epi32(1);	
-	
-	
-	for (int y = 0; y < height; y++) // y axis of the image	
-	{
-		int yw = y * width;
-		_yf = _mm_set1_ps((float)y);
-		
-		for (int x = 0; x < width; x += 4) // x axis of the image
-		{			
-			_xf = _mm_setr_ps((float)x + 3, (float)x + 2, (float)x + 1, (float)x);							
-			
-			// int index = y * width + x;			
-			int index0 = yw + x; // y * width + x
-			int index1 = yw + x + 1; // y * width + (x + 1)
-			int index2 = yw + x + 2; // y * width + (x + 2)
-			int index3 = yw + x + 3; // y * width + (x + 3)			
-			
-			// int itr = 0;	
-			_itr = _mm_set1_epi32(0); // initialize iteration counter for each pixel
-			
-			// float zr = 0, zi = 0, cr = 0, ci = 0; [ Complex z, c ]				
-			_zr = _mm_set1_ps(0);
-			_zi = _mm_set1_ps(0);
-			_cr = _mm_set1_ps(0);
-			_ci = _mm_set1_ps(0);
-			
-			// getMappedScaleX(const int &x, const int &xMax)
-			
-			// cr = (x * invW) - 2.5;			
-			// _cr =  _mm_fmadd_ps(_xf, _invw, _const2p5neg); // No FMA on my Nehalem CPU			 
-			_cr = _mm_mul_ps(_xf, _invw);
-			_cr = _mm_sub_ps(_cr, _const2p5);	
-
-			// getMappedScaleY(const int &y, const int &yMax)
-			
-			// ci = (y * invH) - 1;			
-			// _ci =  _mm_fmadd_ps(_yf, _invh, _const1neg);  // No FMA on my Nehalem CPU
-			_ci = _mm_mul_ps(_yf, _invh);
-			_ci = _mm_sub_ps(_ci, _const1);		
-
-			///////////////////////////// while (zr * zr + zi * zi <= 2 * 2 && itr < MAX_ITR) ///////////////////////////////
-			
-			loop: // while (...)
-				
-			_zr2 = _mm_mul_ps(_zr, _zr); // zr * zr
-			_zi2 = _mm_mul_ps(_zi, _zi); // zi * zi
-			_mod = _mm_add_ps(_zr2, _zi2); // zr * zr + zi * zi			
-				
-			_masknumitr = _mm_cmplt_epi32(_itr, _constmaxitr); // itr < MAX_ITR	
-			_maskwhile = _mm_cmple_ps(_mod, _const4); // zr * zr + zi * zi <= 4.0					
-			_maskwhile = _mm_and_ps(_maskwhile, _mm_castsi128_ps(_masknumitr)); // (zr * zr + zi * zi <= 4.0 && itr < MAX_ITR)
-			
-			
-			//////////////////////// evalMandel(z, c)//////////////////////////////////
-			
-			_a = _zr;
-			_b = _zi;
-			
-			_zr = _mm_sub_ps(_zr2, _zi2); // zr = zr * zr - zi * zi
-			_zr = _mm_add_ps(_zr, _cr); // zr += cr
-			
-			_zi = _mm_mul_ps(_a, _b); // zi = a * b
-			
-			// zi = zi * 2 + ci
-			// _zi = _mm_fmadd_ps(_zi, _const2, _ci); // No FMA on my Nehalem CPU
-			_zi = _mm_mul_ps(_zi, _const2);
-			_zi = _mm_add_ps(_zi, _ci);
-			
-			//////////////////////// evalMandel(z, c)//////////////////////////////////
-			
-			
-			// itr++;
-			_inc1i = _mm_and_si128(_mm_castps_si128(_maskwhile), _const1i);
-			_itr = _mm_add_epi32(_itr, _inc1i);				
-			
-			// if (any one register satisfies while condition) goto loop;
-			if (_mm_movemask_ps(_maskwhile) > 0)
-				goto loop;
-			
-			///////////////////////////// while (zr * zr + zi * zi <= 2 * 2 && itr < MAX_ITR) ///////////////////////////////
-			
-			// if (itr < MAX_ITR) frameBuffer[index] = BLACK;
-			// else frameBuffer[index] = CYAN;
-			
-			// pixel masks read in correct endianness |3, 2, 1, 0| instead of |0, 1, 2, 3| 
-			int pixel0 = _mm_extract_epi32(_masknumitr, 3);
-			int pixel1 = _mm_extract_epi32(_masknumitr, 2);
-			int pixel2 = _mm_extract_epi32(_masknumitr, 1);
-			int pixel3 = _mm_extract_epi32(_masknumitr, 0);
-			
-			frameBuffer[index0] = pixel0 ? BLACK : CYAN;
-			frameBuffer[index1] = pixel1 ? BLACK : CYAN;
-			frameBuffer[index2] = pixel2 ? BLACK : CYAN;
-			frameBuffer[index3] = pixel3 ? BLACK : CYAN;		
-		}
-	}
-	
-	if (!isBenchmark)
-		saveImg(frameBuffer, width, height);
-	
-	delete [] frameBuffer;
-}
-
-void drawMandelbrotOMPSSE(const int &width, const int &height, int isBenchmark)
-{
-	uint32_t bufferSize = width * height;
-	Color3f *frameBuffer = new Color3f[bufferSize];
-	float invW = (1./ width) * 3.5, invH = (1./ height) * 2;
-	size_t nThreads = std::thread::hardware_concurrency();
 #pragma omp parallel num_threads(nThreads) shared(frameBuffer)
 	{
 	
@@ -515,151 +386,10 @@ void drawMandelbrotOMPSSE(const int &width, const int &height, int isBenchmark)
 
 #ifdef ISA_AVX
 
-void drawMandelbrotAVX(const int &width, const int &height, int isBenchmark)
+void drawMandelbrotOMPAVX(const int &width, const int &height, int isBenchmark, uint32_t nThreads)
 {
 	uint32_t bufferSize = width * height;
 	Color3f *frameBuffer = new Color3f[bufferSize];
-	float invW = (1. / width) * 3.5, invH = (1. / height) * 2;
-
-	// 32-bit float registers
-	__m256 _zr, _zi, _cr, _ci, _a, _b, _zr2, _zi2, _const2, _invw, _invh, _const2p5neg,
-		_const1neg, _mod, _const4, _maskwhile, _xf, _yf;
-
-	// 32-bit signed int registers
-	__m256i _masknumitr, _itr, _constmaxitr, _inc1i, _const1i;
-
-
-	// initialize floating point registers
-	_const1neg = _mm256_set1_ps(-1.0);
-	_const2 = _mm256_set1_ps(2.0);
-	_const4 = _mm256_set1_ps(4.0);
-	_const2p5neg = _mm256_set1_ps(-2.5);
-
-	_invw = _mm256_set1_ps(invW);
-	_invh = _mm256_set1_ps(invH);
-
-	// initialize integer registers
-	_constmaxitr = _mm256_set1_epi32(MAX_ITR);
-	_const1i = _mm256_set1_epi32(1);
-
-
-	for (int y = 0; y < height; y++) // y axis of the image	
-	{
-		int yw = y * width;
-		_yf = _mm256_set1_ps((float) y);
-
-		for (int x = 0; x < width; x += 8) // x axis of the image
-		{
-			_xf = _mm256_setr_ps((float) x + 7, (float) x + 6, (float) x + 5, (float) x + 4,
-				(float) x + 3, (float) x + 2, (float) x + 1, (float) x);
-
-			// int index = y * width + x;			
-			int index0 = yw + x; // y * width + x
-			int index1 = yw + x + 1; // y * width + (x + 1)
-			int index2 = yw + x + 2; // y * width + (x + 2)
-			int index3 = yw + x + 3; // y * width + (x + 3)		
-			int index4 = yw + x + 4;
-			int index5 = yw + x + 5;
-			int index6 = yw + x + 6;
-			int index7 = yw + x + 7;
-
-			// int itr = 0;	
-			_itr = _mm256_set1_epi32(0); // initialize iteration counter for each pixel
-
-			// float zr = 0, zi = 0, cr = 0, ci = 0; [ Complex z, c ]				
-			_zr = _mm256_set1_ps(0);
-			_zi = _mm256_set1_ps(0);
-			_cr = _mm256_set1_ps(0);
-			_ci = _mm256_set1_ps(0);
-
-			// getMappedScaleX(const int &x, const int &xMax)
-
-			// cr = (x * invW) - 2.5;			
-			_cr = _mm256_fmadd_ps(_xf, _invw, _const2p5neg);
-
-
-			// getMappedScaleY(const int &y, const int &yMax)
-
-			// ci = (y * invH) - 1;			
-			_ci = _mm256_fmadd_ps(_yf, _invh, _const1neg);
-
-
-			///////////////////////////// while (zr * zr + zi * zi <= 2 * 2 && itr < MAX_ITR) ///////////////////////////////
-
-		loop: // while (...)
-
-			_zr2 = _mm256_mul_ps(_zr, _zr); // zr * zr
-			_zi2 = _mm256_mul_ps(_zi, _zi); // zi * zi
-			_mod = _mm256_add_ps(_zr2, _zi2); // zr * zr + zi * zi			
-
-			_masknumitr = _mm256_cmpgt_epi32(_constmaxitr, _itr); // MAX_ITR > itr	
-			_maskwhile = _mm256_cmp_ps(_mod, _const4, _CMP_LT_OQ); // zr * zr + zi * zi <= 4.0
-			_maskwhile = _mm256_and_ps(_maskwhile, _mm256_castsi256_ps(_masknumitr)); // (zr * zr + zi * zi <= 4.0 && itr < MAX_ITR)
-
-
-			//////////////////////// evalMandel(z, c)//////////////////////////////////
-
-			_a = _zr;
-			_b = _zi;
-
-			_zr = _mm256_sub_ps(_zr2, _zi2); // zr = zr * zr - zi * zi
-			_zr = _mm256_add_ps(_zr, _cr); // zr += cr
-
-			_zi = _mm256_mul_ps(_a, _b); // zi = a * b
-
-			// zi = zi * 2 + ci
-			_zi = _mm256_fmadd_ps(_zi, _const2, _ci);
-
-			//////////////////////// evalMandel(z, c)//////////////////////////////////
-
-
-			// itr++;
-			_inc1i = _mm256_and_si256(_mm256_castps_si256(_maskwhile), _const1i);
-			_itr = _mm256_add_epi32(_itr, _inc1i);
-
-			// if (any one register satisfies while condition) goto loop;
-			if (_mm256_movemask_ps(_maskwhile) > 0)
-				goto loop;
-
-			///////////////////////////// while (zr * zr + zi * zi <= 2 * 2 && itr < MAX_ITR) ///////////////////////////////
-
-			// if (itr < MAX_ITR) frameBuffer[index] = BLACK;
-			// else frameBuffer[index] = CYAN;
-
-
-			// pixel masks read in correct endianness |7, 6, 5, 4, 3, 2, 1, 0| instead of |0, 1, 2, 3, 4, 5, 6, 7| 			
-			int pixel0 = _mm256_extract_epi32(_masknumitr, 7);
-			int pixel1 = _mm256_extract_epi32(_masknumitr, 6);
-			int pixel2 = _mm256_extract_epi32(_masknumitr, 5);
-			int pixel3 = _mm256_extract_epi32(_masknumitr, 4);
-			int pixel4 = _mm256_extract_epi32(_masknumitr, 3);
-			int pixel5 = _mm256_extract_epi32(_masknumitr, 2);
-			int pixel6 = _mm256_extract_epi32(_masknumitr, 1);
-			int pixel7 = _mm256_extract_epi32(_masknumitr, 0);
-
-
-			frameBuffer[index0] = pixel0 ? BLACK : CYAN;
-			frameBuffer[index1] = pixel1 ? BLACK : CYAN;
-			frameBuffer[index2] = pixel2 ? BLACK : CYAN;
-			frameBuffer[index3] = pixel3 ? BLACK : CYAN;
-			frameBuffer[index4] = pixel4 ? BLACK : CYAN;
-			frameBuffer[index5] = pixel5 ? BLACK : CYAN;
-			frameBuffer[index6] = pixel6 ? BLACK : CYAN;
-			frameBuffer[index7] = pixel7 ? BLACK : CYAN;
-		}
-	}
-
-	if (!isBenchmark)
-		saveImg(frameBuffer, width, height);
-
-	delete [] frameBuffer;
-}
-
-void drawMandelbrotOMPAVX(const int &width, const int &height, int isBenchmark)
-{
-	uint32_t bufferSize = width * height;
-	Color3f *frameBuffer = new Color3f[bufferSize];
-	size_t nThreads = std::thread::hardware_concurrency();
 	float invW = (1. / width) * 3.5, invH = (1. / height) * 2;	
 	
 #pragma omp parallel num_threads(nThreads) shared(frameBuffer)
@@ -801,9 +531,9 @@ void drawMandelbrotOMPAVX(const int &width, const int &height, int isBenchmark)
 
 #endif
 
-/////////////////////////////////////////////// AVX END ///////////////////////////////////////////
+/////////////////////////////////////////////// AVX END ///////////////////////////////////////////////
 
-/********************************************INTRINSICS END***************************************/
+/********************************************INTRINSICS END*******************************************/
 
 void drawMandelbrot(const int &width, const int &height, int isBenchmark)
 {
@@ -962,9 +692,9 @@ int main()
 			if (useSIMD)
 			{
 #if ISA_SSE
-				drawMandelbrotOMPSSE(width, height, isBenchmark);
+				drawMandelbrotOMPSSE(width, height, isBenchmark, std::thread::hardware_concurrency());
 #elif ISA_AVX
-				drawMandelbrotOMPAVX(width, height, isBenchmark);
+				drawMandelbrotOMPAVX(width, height, isBenchmark, std::thread::hardware_concurrency());
 #else
 				std::cerr << "Compilation error. Please specify the correct instruction set architecture "
                              "during compilation. Please see the documentation in the source file. Aborting..." << std::endl;
@@ -995,9 +725,9 @@ int main()
 		if (useSIMD)
 		{	
 #if ISA_SSE
-				drawMandelbrotSSE(width, height, isBenchmark);
+				drawMandelbrotOMPSSE(width, height, isBenchmark, 1);
 #elif ISA_AVX
-				drawMandelbrotAVX(width, height, isBenchmark);
+				drawMandelbrotOMPAVX(width, height, isBenchmark, 1);
 #else
 				std::cerr << "Compilation error. Please specify the correct instruction set architecture "
                              "during compilation. Please see the documentation in the source file. Aborting..." << std::endl;
