@@ -55,23 +55,30 @@ COMPILATION DETAILS:
 
 I have tested on GCC 9.4.0 with the following flags: 
 
-SSE: "-fopenmp -pthread -O3 -std=c++11 -msse4.1 -DISA_SSE" 
+SSE: "-fopenmp -pthread -O3 -std=c++17 -msse4.1 -DISA_SSE" 
 ----------------------------------------------------------
 
-to enable and/or link OpenMP, pthreads, full optimizations, C++11 threads,
+to enable and/or link OpenMP, pthreads, full optimizations, C++17,
 SSE4.1 instruction set respectively.
 
-AVX: "-fopenmp -pthread -O3 -std=c++11 -mavx2 -mfma -DISA_AVX" 
+AVX: "-fopenmp -pthread -O3 -std=c++17 -mavx2 -mfma -DISA_AVX" 
 --------------------------------------------------------------
 
-to enable and/or link OpenMP, pthreads, full optimizations, C++11 threads,
+to enable and/or link OpenMP, pthreads, full optimizations, C++17,
 AVX2 instruction set and Fused Multiply Add respectively.
 
-The compiler definitions ISA_SSE and ISA_AVX, enable/disable platform specific intrinsics code.
+AVX-512: "-fopenmp -pthread -O3 -std=c++17 -mavx512f -mfma -DISA_AVX512"
+-----------------------------------------------------------------------
+
+to enable and/or link OpenMP, pthreads, full optimizations, C++17,
+AVX-512F instruction set and Fused Multiply Add respectively.
+
+The compiler definitions ISA_SSE, ISA_AVX, ISA_AVX512 enable/disable platform specific intrinsics code.
 Note that the SSE code will run on a system that supports AVX but the AVX code will *not* run
 on a system that *only* supports upto SSE. Also, SSE and AVX *cannot* be enabled at the same time.
 This is by design. In case one needs to test out both the implementations, two binaries need to be
-compiled for SSE and AVX using the flags -DISA_SSE and -DISA_AVX respectively.
+compiled for SSE and AVX using the flags -DISA_SSE and -DISA_AVX respectively. Same applies for
+AVX-512 instructions.
 
 TODO: The AVX implementation has slight rendering differences compared to the non-SIMD OpenMP and
 the single core versions. This is probably due to subtle precision errors in the AVX implementation.
@@ -92,6 +99,7 @@ Resources on SSE/AVX intrinsics:
 [8]  https://www.codingame.com/playgrounds/283/sse-avx-vectorization/what-is-sse-and-avx
 [9]  https://software.intel.com/content/www/us/en/develop/articles/introduction-to-intel-advanced-vector-extensions.html
 [10] https://www.cs.virginia.edu/~cr4bd/3330/S2018/simdref.html
+[11] https://en.wikichip.org/wiki/x86/avx-512
 
 */
 
@@ -376,7 +384,7 @@ void drawMandelbrotOMPSSE(const int &width, const int &height, int isBenchmark, 
 	delete [] frameBuffer;
 }
 
-#endif
+#endif // ISA_SSE
 
 /////////////////////////////////////////////// SSE END ///////////////////////////////////////////////
 
@@ -529,9 +537,186 @@ void drawMandelbrotOMPAVX(const int &width, const int &height, int isBenchmark, 
 	delete [] frameBuffer;
 }
 
-#endif
+#endif // ISA_AVX
 
 /////////////////////////////////////////////// AVX END ///////////////////////////////////////////////
+
+void drawMandelbrotOMPAVX512(const int &width, const int &height, int isBenchmark, uint32_t nThreads)
+{
+	uint32_t bufferSize = width * height;
+	Color3f *frameBuffer = new Color3f[bufferSize];
+	float invW = (1. / width) * 3.5, invH = (1. / height) * 2;	
+	
+#pragma omp parallel num_threads(nThreads) shared(frameBuffer)
+	{	
+		// 32-bit float registers
+		__m512 _zr, _zi, _cr, _ci, _a, _b, _zr2, _zi2, _const2, _invw, _invh, _const2p5neg,
+			_const1neg, _mod, _const4, _xf, _yf;
+
+		// 32-bit signed int registers
+		__m512i _itr, _constmaxitr, _inc1i, _const1i;
+
+		__mmask16 _masknumitr, _maskwhile;
+
+
+		// initialize floating point registers
+		_const1neg = _mm512_set1_ps(-1.0);
+		_const2 = _mm512_set1_ps(2.0);
+		_const4 = _mm512_set1_ps(4.0);
+		_const2p5neg = _mm512_set1_ps(-2.5);
+
+		_invw = _mm512_set1_ps(invW);
+		_invh = _mm512_set1_ps(invH);
+
+		// initialize integer registers
+		_constmaxitr = _mm512_set1_epi32(MAX_ITR);
+		_const1i = _mm512_set1_epi32(1);	
+		
+#pragma omp for schedule(dynamic, 1) 
+		for (int y = 0; y < height; y++) // y axis of the image	
+		{
+			int yw = y * width;
+			_yf = _mm512_set1_ps((float) y);
+			
+			for (int x = 0; x < width; x += 8) // x axis of the image
+			{
+				_xf = _mm512_setr_ps((float)x + 15, (float)x + 14, (float)x + 13, (float)x + 12,
+				                    (float)x + 11, (float)x + 10, (float)x + 9, (float)x + 8, 
+									(float)x + 7, (float)x + 6, (float)x + 5, (float)x + 4,
+									(float)x + 3, (float)x + 2, (float)x + 1, (float)x);
+
+				// int index = y * width + x;			
+				int index0 = yw + x;
+				int index1 = yw + x + 1;
+				int index2 = yw + x + 2;
+				int index3 = yw + x + 3;		
+				int index4 = yw + x + 4;
+				int index5 = yw + x + 5;
+				int index6 = yw + x + 6;
+				int index7 = yw + x + 7;
+				int index8 = yw + x + 8;
+				int index9 = yw + x + 9;
+				int index10 = yw + x + 10;
+				int index11 = yw + x + 11;
+				int index12 = yw + x + 12;
+				int index13 = yw + x + 13;
+				int index14 = yw + x + 14;
+				int index15 = yw + x + 15;
+
+				// int itr = 0;	
+				_itr = _mm512_set1_epi32(0); // initialize iteration counter for each pixel
+
+				// float zr = 0, zi = 0, cr = 0, ci = 0; [ Complex z, c ]				
+				_zr = _mm512_set1_ps(0);
+				_zi = _mm512_set1_ps(0);
+				_cr = _mm512_set1_ps(0);
+				_ci = _mm512_set1_ps(0);
+
+				// getMappedScaleX(const int &x, const int &xMax)
+
+				// cr = (x * invW) - 2.5;			
+				_cr = _mm512_fmadd_ps(_xf, _invw, _const2p5neg);
+
+
+				// getMappedScaleY(const int &y, const int &yMax)
+
+				// ci = (y * invH) - 1;			
+				_ci = _mm512_fmadd_ps(_yf, _invh, _const1neg);
+
+
+				///////////////////////////// while (zr * zr + zi * zi <= 2 * 2 && itr < MAX_ITR) ///////////////////////////////
+
+			loop: // while (...)
+
+				_zr2 = _mm512_mul_ps(_zr, _zr); // zr * zr
+				_zi2 = _mm512_mul_ps(_zi, _zi); // zi * zi
+				_mod = _mm512_add_ps(_zr2, _zi2); // zr * zr + zi * zi			
+
+				_masknumitr = _mm512_cmpgt_epi32_mask(_constmaxitr, _itr); // MAX_ITR > itr	
+				_maskwhile = _mm512_cmp_ps_mask(_mod, _const4, _CMP_LT_OQ); // zr * zr + zi * zi <= 4.0
+				_maskwhile = _mm512_and_ps(_maskwhile, _mm512_castsi512_ps(_masknumitr)); // (zr * zr + zi * zi <= 4.0 && itr < MAX_ITR)
+
+
+				//////////////////////// evalMandel(z, c)//////////////////////////////////
+
+				_a = _zr;
+				_b = _zi;
+
+				_zr = _mm512_sub_ps(_zr2, _zi2); // zr = zr * zr - zi * zi
+				_zr = _mm512_add_ps(_zr, _cr); // zr += cr
+
+				_zi = _mm512_mul_ps(_a, _b); // zi = a * b
+
+				// zi = zi * 2 + ci
+				_zi = _mm512_fmadd_ps(_zi, _const2, _ci);
+
+				//////////////////////// evalMandel(z, c)//////////////////////////////////
+
+
+				// itr++;
+				_inc1i = _mm512_and_si512(_mm512_castps_si512(_maskwhile), _const1i);
+				_itr = _mm512_add_epi32(_itr, _inc1i);
+
+				// if (any one register satisfies while condition) goto loop;
+				if (_mm512_movemask_ps(_maskwhile) > 0)
+					goto loop;
+
+				///////////////////////////// while (zr * zr + zi * zi <= 2 * 2 && itr < MAX_ITR) ///////////////////////////////
+
+				// if (itr < MAX_ITR) frameBuffer[index] = BLACK;
+				// else frameBuffer[index] = CYAN;
+
+
+				// pixel masks read in correct endianness |...7, 6, 5, 4, 3, 2, 1, 0| instead of |0, 1, 2, 3, 4, 5, 6, 7...| 			
+				int pixel0 = _mm512_extract_epi32(_masknumitr, 15);
+				int pixel1 = _mm512_extract_epi32(_masknumitr, 14);
+				int pixel2 = _mm512_extract_epi32(_masknumitr, 13);
+				int pixel3 = _mm512_extract_epi32(_masknumitr, 12);
+				int pixel4 = _mm512_extract_epi32(_masknumitr, 11);
+				int pixel5 = _mm512_extract_epi32(_masknumitr, 10);
+				int pixel6 = _mm512_extract_epi32(_masknumitr, 9);
+				int pixel7 = _mm512_extract_epi32(_masknumitr, 8);
+				int pixel8 = _mm512_extract_epi32(_masknumitr, 7);
+				int pixel9 = _mm512_extract_epi32(_masknumitr, 6);
+				int pixel10 = _mm512_extract_epi32(_masknumitr, 5);
+				int pixel11 = _mm512_extract_epi32(_masknumitr, 4);
+				int pixel12 = _mm512_extract_epi32(_masknumitr, 3);
+				int pixel13 = _mm512_extract_epi32(_masknumitr, 2);
+				int pixel14 = _mm512_extract_epi32(_masknumitr, 1);
+				int pixel15 = _mm512_extract_epi32(_masknumitr, 0);
+
+
+				frameBuffer[index0] = pixel0 ? BLACK : CYAN;
+				frameBuffer[index1] = pixel1 ? BLACK : CYAN;
+				frameBuffer[index2] = pixel2 ? BLACK : CYAN;
+				frameBuffer[index3] = pixel3 ? BLACK : CYAN;
+				frameBuffer[index4] = pixel4 ? BLACK : CYAN;
+				frameBuffer[index5] = pixel5 ? BLACK : CYAN;
+				frameBuffer[index6] = pixel6 ? BLACK : CYAN;
+				frameBuffer[index7] = pixel7 ? BLACK : CYAN;
+				frameBuffer[index8] = pixel8 ? BLACK : CYAN;
+				frameBuffer[index9] = pixel9 ? BLACK : CYAN;
+				frameBuffer[index10] = pixel10 ? BLACK : CYAN;
+				frameBuffer[index11] = pixel11 ? BLACK : CYAN;
+				frameBuffer[index12] = pixel12 ? BLACK : CYAN;
+				frameBuffer[index13] = pixel13 ? BLACK : CYAN;
+				frameBuffer[index14] = pixel14 ? BLACK : CYAN;
+				frameBuffer[index15] = pixel15 ? BLACK : CYAN;
+			}
+		}
+	}
+	
+	if (!isBenchmark)
+		saveImg(frameBuffer, width, height);
+	
+	delete [] frameBuffer;
+}
+
+/////////////////////////////////////////////// AVX-512 BEGIN /////////////////////////////////////////////
+
+#ifdef ISA_AVX512
+
+#endif // ISA_AVX512
 
 /********************************************INTRINSICS END*******************************************/
 
@@ -653,13 +838,37 @@ void drawMandelbrotMT(const int &width, const int &height, int isBenchmark)
 	delete [] mandelThreads;
 }
 
-int main()
+bool isValidISA()
 {
-	
-#if defined(ISA_SSE) && defined(ISA_AVX)
-	std::cerr << "Invalid compilation flags detected in binary. Aborting..." << std::endl;
-	std::exit(EXIT_FAILURE);
-#endif	
+
+#if defined(ISA_SSE) && defined(ISA_AVX) && defined(ISA_AVX512)
+	return false;
+#endif
+
+	uint32_t flag = 0;
+
+#ifdef ISA_SSE
+	flag ^= 1;
+#endif
+
+#ifdef ISA_AVX
+	flag ^= 1;
+#endif
+
+#ifdef ISA_AVX512
+	flag ^= 1;
+#endif
+
+	return (flag & 1);
+}
+
+int main()
+{	
+	if (!isValidISA())
+	{
+		std::cerr << "Invalid compilation flags detected in binary. Aborting..." << std::endl;
+		std::exit(EXIT_FAILURE);
+	}
 	
 	int width = 0, height = 0, isBenchmark = 0, useSIMD = 0;
 	char ch = ' ';	
@@ -695,6 +904,8 @@ int main()
 				drawMandelbrotOMPSSE(width, height, isBenchmark, std::thread::hardware_concurrency());
 #elif ISA_AVX
 				drawMandelbrotOMPAVX(width, height, isBenchmark, std::thread::hardware_concurrency());
+#elif ISA_AVX512
+				drawMandelbrotOMPAVX512(width, height, isBenchmark, std::thread::hardware_concurrency());
 #else
 				std::cerr << "Compilation error. Please specify the correct instruction set architecture "
                              "during compilation. Please see the documentation in the source file. Aborting..." << std::endl;
@@ -728,6 +939,8 @@ int main()
 				drawMandelbrotOMPSSE(width, height, isBenchmark, 1);
 #elif ISA_AVX
 				drawMandelbrotOMPAVX(width, height, isBenchmark, 1);
+#elif ISA_AVX512
+				drawMandelbrotOMPAVX512(width, height, isBenchmark, 1);
 #else
 				std::cerr << "Compilation error. Please specify the correct instruction set architecture "
                              "during compilation. Please see the documentation in the source file. Aborting..." << std::endl;
