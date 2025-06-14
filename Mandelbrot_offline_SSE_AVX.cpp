@@ -541,6 +541,12 @@ void drawMandelbrotOMPAVX(const int &width, const int &height, int isBenchmark, 
 
 /////////////////////////////////////////////// AVX END ///////////////////////////////////////////////
 
+
+
+/////////////////////////////////////////////// AVX-512 BEGIN /////////////////////////////////////////////
+
+#ifdef ISA_AVX512
+
 void drawMandelbrotOMPAVX512(const int &width, const int &height, int isBenchmark, uint32_t nThreads)
 {
 	uint32_t bufferSize = width * height;
@@ -555,9 +561,6 @@ void drawMandelbrotOMPAVX512(const int &width, const int &height, int isBenchmar
 
 		// 32-bit signed int registers
 		__m512i _itr, _constmaxitr, _inc1i, _const1i;
-
-		__mmask16 _masknumitr, _maskwhile;
-
 
 		// initialize floating point registers
 		_const1neg = _mm512_set1_ps(-1.0);
@@ -578,7 +581,7 @@ void drawMandelbrotOMPAVX512(const int &width, const int &height, int isBenchmar
 			int yw = y * width;
 			_yf = _mm512_set1_ps((float) y);
 			
-			for (int x = 0; x < width; x += 8) // x axis of the image
+			for (int x = 0; x < width; x += 16) // x axis of the image
 			{
 				_xf = _mm512_setr_ps((float)x + 15, (float)x + 14, (float)x + 13, (float)x + 12,
 				                    (float)x + 11, (float)x + 10, (float)x + 9, (float)x + 8, 
@@ -632,9 +635,15 @@ void drawMandelbrotOMPAVX512(const int &width, const int &height, int isBenchmar
 				_zi2 = _mm512_mul_ps(_zi, _zi); // zi * zi
 				_mod = _mm512_add_ps(_zr2, _zi2); // zr * zr + zi * zi			
 
-				_masknumitr = _mm512_cmpgt_epi32_mask(_constmaxitr, _itr); // MAX_ITR > itr	
-				_maskwhile = _mm512_cmp_ps_mask(_mod, _const4, _CMP_LT_OQ); // zr * zr + zi * zi <= 4.0
-				_maskwhile = _mm512_and_ps(_maskwhile, _mm512_castsi512_ps(_masknumitr)); // (zr * zr + zi * zi <= 4.0 && itr < MAX_ITR)
+				__mmask16 _masknumitr = _mm512_cmplt_epi32_mask(_itr, _constmaxitr);   // itr < MAX_ITR
+				__mmask16 _maskradius = _mm512_cmple_ps_mask(_mod, _const4); // zr * zr + zi * zi <= 4.0
+				
+				// _mm512_mask_and_ps(_maskradius, _masknumitr);
+				// int whileTrue = _mm512_mask2int(_maskradius) & _mm512_mask2int(_masknumitr); // (zr * zr + zi * zi <= 4.0 && itr < MAX_ITR)
+				__mmask16 _whileTrue = _maskradius & _masknumitr;
+
+				// std::cout << _mm512_mask2int(_maskradius) << " " << _mm512_mask2int(_masknumitr) << std::endl;
+				// std::exit(1);
 
 
 				//////////////////////// evalMandel(z, c)//////////////////////////////////
@@ -654,11 +663,15 @@ void drawMandelbrotOMPAVX512(const int &width, const int &height, int isBenchmar
 
 
 				// itr++;
-				_inc1i = _mm512_and_si512(_mm512_castps_si512(_maskwhile), _const1i);
+
+				__m512i _zero = _mm512_setzero_epi32();
+				__m512i _onlytrue = _mm512_mask_set1_epi32(_zero, _whileTrue, 1);
+
+				_inc1i = _mm512_and_si512(_onlytrue, _const1i);
 				_itr = _mm512_add_epi32(_itr, _inc1i);
 
 				// if (any one register satisfies while condition) goto loop;
-				if (_mm512_movemask_ps(_maskwhile) > 0)
+				if (_mm512_mask2int(_whileTrue))
 					goto loop;
 
 				///////////////////////////// while (zr * zr + zi * zi <= 2 * 2 && itr < MAX_ITR) ///////////////////////////////
@@ -668,23 +681,22 @@ void drawMandelbrotOMPAVX512(const int &width, const int &height, int isBenchmar
 
 
 				// pixel masks read in correct endianness |...7, 6, 5, 4, 3, 2, 1, 0| instead of |0, 1, 2, 3, 4, 5, 6, 7...| 			
-				int pixel0 = _mm512_extract_epi32(_masknumitr, 15);
-				int pixel1 = _mm512_extract_epi32(_masknumitr, 14);
-				int pixel2 = _mm512_extract_epi32(_masknumitr, 13);
-				int pixel3 = _mm512_extract_epi32(_masknumitr, 12);
-				int pixel4 = _mm512_extract_epi32(_masknumitr, 11);
-				int pixel5 = _mm512_extract_epi32(_masknumitr, 10);
-				int pixel6 = _mm512_extract_epi32(_masknumitr, 9);
-				int pixel7 = _mm512_extract_epi32(_masknumitr, 8);
-				int pixel8 = _mm512_extract_epi32(_masknumitr, 7);
-				int pixel9 = _mm512_extract_epi32(_masknumitr, 6);
-				int pixel10 = _mm512_extract_epi32(_masknumitr, 5);
-				int pixel11 = _mm512_extract_epi32(_masknumitr, 4);
-				int pixel12 = _mm512_extract_epi32(_masknumitr, 3);
-				int pixel13 = _mm512_extract_epi32(_masknumitr, 2);
-				int pixel14 = _mm512_extract_epi32(_masknumitr, 1);
-				int pixel15 = _mm512_extract_epi32(_masknumitr, 0);
-
+				int pixel0 = _masknumitr & (1 << 15);
+				int pixel1 = _masknumitr & (1 << 14);
+				int pixel2 = _masknumitr & (1 << 13);
+				int pixel3 = _masknumitr & (1 << 12);
+				int pixel4 = _masknumitr & (1 << 11);
+				int pixel5 = _masknumitr & (1 << 10);
+				int pixel6 = _masknumitr & (1 << 9);
+				int pixel7 = _masknumitr & (1 << 8);
+				int pixel8 = _masknumitr & (1 << 7);
+				int pixel9 = _masknumitr & (1 << 6);
+				int pixel10 = _masknumitr & (1 << 5);
+				int pixel11 = _masknumitr & (1 << 4);
+				int pixel12 = _masknumitr & (1 << 3);
+				int pixel13 = _masknumitr & (1 << 2);
+				int pixel14 = _masknumitr & (1 << 1);
+				int pixel15 = _masknumitr & 1;
 
 				frameBuffer[index0] = pixel0 ? BLACK : CYAN;
 				frameBuffer[index1] = pixel1 ? BLACK : CYAN;
@@ -712,11 +724,9 @@ void drawMandelbrotOMPAVX512(const int &width, const int &height, int isBenchmar
 	delete [] frameBuffer;
 }
 
-/////////////////////////////////////////////// AVX-512 BEGIN /////////////////////////////////////////////
-
-#ifdef ISA_AVX512
-
 #endif // ISA_AVX512
+
+/////////////////////////////////////////////// AVX-512 END /////////////////////////////////////////////
 
 /********************************************INTRINSICS END*******************************************/
 
