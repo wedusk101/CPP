@@ -638,13 +638,7 @@ void drawMandelbrotOMPAVX512(const int &width, const int &height, int isBenchmar
 				__mmask16 _masknumitr = _mm512_cmplt_epi32_mask(_itr, _constmaxitr);   // itr < MAX_ITR
 				__mmask16 _maskradius = _mm512_cmple_ps_mask(_mod, _const4); // zr * zr + zi * zi <= 4.0
 				
-				// _mm512_mask_and_ps(_maskradius, _masknumitr);
-				// int whileTrue = _mm512_mask2int(_maskradius) & _mm512_mask2int(_masknumitr); // (zr * zr + zi * zi <= 4.0 && itr < MAX_ITR)
-				__mmask16 _whileTrue = _maskradius & _masknumitr;
-
-				// std::cout << _mm512_mask2int(_maskradius) << " " << _mm512_mask2int(_masknumitr) << std::endl;
-				// std::exit(1);
-
+				__mmask16 _whileTrue = _maskradius & _masknumitr; // (zr * zr + zi * zi <= 4.0 && itr < MAX_ITR)
 
 				//////////////////////// evalMandel(z, c)//////////////////////////////////
 
