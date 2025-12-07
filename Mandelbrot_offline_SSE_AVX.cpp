@@ -213,7 +213,7 @@ Color3f YELLOW(1, 1, 0);
 
 uint32_t MAX_ITR = 0;
 
-void saveImg(Color3f *frameBuffer, int width, int height)
+void saveImg(const Color3f *frameBuffer, int width, int height)
 {
 	int bufferSize = width * height;
 	std::cout << "Writing out frame buffer to file..." << std::endl;
@@ -253,10 +253,8 @@ void evalMandel(Complex &z, const Complex &c)
 
 #ifdef ISA_SSE
 
-void drawMandelbrotOMPSSE(const int &width, const int &height, int isBenchmark, uint32_t nThreads)
+void drawMandelbrotOMPSSE(Color3f *frameBuffer, const int &width, const int &height, int isBenchmark, uint32_t nThreads)
 {
-	uint32_t bufferSize = width * height;
-	Color3f *frameBuffer = new Color3f[bufferSize];
 	float invW = (1./ width) * 3.5, invH = (1./ height) * 2;
 #pragma omp parallel num_threads(nThreads) shared(frameBuffer)
 	{
@@ -379,9 +377,7 @@ void drawMandelbrotOMPSSE(const int &width, const int &height, int isBenchmark, 
 	}
 	
 	if (!isBenchmark)
-		saveImg(frameBuffer, width, height);
-	
-	delete [] frameBuffer;
+		saveImg(frameBuffer, width, height);	
 }
 
 #endif // ISA_SSE
@@ -394,10 +390,8 @@ void drawMandelbrotOMPSSE(const int &width, const int &height, int isBenchmark, 
 
 #ifdef ISA_AVX
 
-void drawMandelbrotOMPAVX(const int &width, const int &height, int isBenchmark, uint32_t nThreads)
+void drawMandelbrotOMPAVX(Color3f *frameBuffer, const int &width, const int &height, int isBenchmark, uint32_t nThreads)
 {
-	uint32_t bufferSize = width * height;
-	Color3f *frameBuffer = new Color3f[bufferSize];
 	float invW = (1. / width) * 3.5, invH = (1. / height) * 2;	
 	
 #pragma omp parallel num_threads(nThreads) shared(frameBuffer)
@@ -533,8 +527,6 @@ void drawMandelbrotOMPAVX(const int &width, const int &height, int isBenchmark, 
 	
 	if (!isBenchmark)
 		saveImg(frameBuffer, width, height);
-	
-	delete [] frameBuffer;
 }
 
 #endif // ISA_AVX
@@ -547,10 +539,8 @@ void drawMandelbrotOMPAVX(const int &width, const int &height, int isBenchmark, 
 
 #ifdef ISA_AVX512
 
-void drawMandelbrotOMPAVX512(const int &width, const int &height, int isBenchmark, uint32_t nThreads)
+void drawMandelbrotOMPAVX512(Color3f *frameBuffer, const int &width, const int &height, int isBenchmark, uint32_t nThreads)
 {
-	uint32_t bufferSize = width * height;
-	Color3f *frameBuffer = new Color3f[bufferSize];
 	float invW = (1. / width) * 3.5, invH = (1. / height) * 2;	
 	
 #pragma omp parallel num_threads(nThreads) shared(frameBuffer)
@@ -714,8 +704,6 @@ void drawMandelbrotOMPAVX512(const int &width, const int &height, int isBenchmar
 	
 	if (!isBenchmark)
 		saveImg(frameBuffer, width, height);
-	
-	delete [] frameBuffer;
 }
 
 #endif // ISA_AVX512
@@ -724,10 +712,8 @@ void drawMandelbrotOMPAVX512(const int &width, const int &height, int isBenchmar
 
 /********************************************INTRINSICS END*******************************************/
 
-void drawMandelbrot(const int &width, const int &height, int isBenchmark)
+void drawMandelbrot(Color3f *frameBuffer, const int &width, const int &height, int isBenchmark)
 {
-	uint32_t bufferSize = width * height;
-	Color3f *frameBuffer = new Color3f[bufferSize];
 	uint32_t index = 0;
 	for (int y = 0; y < height; y++) // y axis of the image	
 	{
@@ -752,14 +738,10 @@ void drawMandelbrot(const int &width, const int &height, int isBenchmark)
 	
 	if (!isBenchmark)
 		saveImg(frameBuffer, width, height);
-	
-	delete [] frameBuffer;
 }
 
-void drawMandelbrotOMP(const int &width, const int &height, int isBenchmark)
+void drawMandelbrotOMP(Color3f* frameBuffer, const int &width, const int &height, int isBenchmark)
 {
-	uint32_t bufferSize = width * height;
-	Color3f *frameBuffer = new Color3f[bufferSize];	
 	size_t nThreads = std::thread::hardware_concurrency();
 #pragma omp parallel num_threads(nThreads) shared(frameBuffer)
 	{
@@ -788,8 +770,6 @@ void drawMandelbrotOMP(const int &width, const int &height, int isBenchmark)
 	
 	if (!isBenchmark)
 		saveImg(frameBuffer, width, height);
-	
-	delete [] frameBuffer;
 }
 
 void drawMandelbrotThread(int renderWidth, int renderHeight, int tileWidth, int tileHeight, int startX, int startY, Color3f *frameBuffer)
@@ -816,11 +796,10 @@ void drawMandelbrotThread(int renderWidth, int renderHeight, int tileWidth, int 
 	}
 }
 
-void drawMandelbrotMT(const int &width, const int &height, int isBenchmark)
+void drawMandelbrotMT(Color3f *frameBuffer, const int &width, const int &height, int isBenchmark)
 {
-	uint32_t bufferSize = width * height, startX = 0, startY = 0; 
+	uint32_t startX = 0, startY = 0; 
 	size_t nThreads = std::thread::hardware_concurrency();
-	Color3f *frameBuffer = new Color3f[bufferSize];	
 	
 	size_t tileWidth = width, tileHeight = height / nThreads;
 	
@@ -838,7 +817,6 @@ void drawMandelbrotMT(const int &width, const int &height, int isBenchmark)
 	if (!isBenchmark)
 		saveImg(frameBuffer, width, height);	
 	
-	delete [] frameBuffer;
 	delete [] mandelThreads;
 }
 
@@ -886,8 +864,11 @@ int main()
 	std::cout << "Enable multithreading? (Y/N)\n";
 	std::cin >> ch;
 	std::cout << "Enable benchmark mode? Disables file output for more accurate performance measurement. (1 = Yes / 0 = No[default])\n";
-	std::cin >> isBenchmark;		
+	std::cin >> isBenchmark;
 	
+	int bufferSize = width * height;
+	Color3f *frameBuffer = new Color3f[bufferSize];	
+
 	std::chrono::time_point<std::chrono::high_resolution_clock> start, stop;
 	
 	if (ch == 'y' || ch == 'Y')
@@ -905,11 +886,11 @@ int main()
 			if (useSIMD)
 			{
 #if ISA_SSE
-				drawMandelbrotOMPSSE(width, height, isBenchmark, std::thread::hardware_concurrency());
+				drawMandelbrotOMPSSE(frameBuffer, width, height, isBenchmark, std::thread::hardware_concurrency());
 #elif ISA_AVX
-				drawMandelbrotOMPAVX(width, height, isBenchmark, std::thread::hardware_concurrency());
+				drawMandelbrotOMPAVX(frameBuffer, width, height, isBenchmark, std::thread::hardware_concurrency());
 #elif ISA_AVX512
-				drawMandelbrotOMPAVX512(width, height, isBenchmark, std::thread::hardware_concurrency());
+				drawMandelbrotOMPAVX512(frameBuffer, width, height, isBenchmark, std::thread::hardware_concurrency());
 #else
 				std::cerr << "Compilation error. Please specify the correct instruction set architecture "
                              "during compilation. Please see the documentation in the source file. Aborting..." << std::endl;
@@ -917,7 +898,7 @@ int main()
 #endif
 			}
 			else
-				drawMandelbrotOMP(width, height, isBenchmark);
+				drawMandelbrotOMP(frameBuffer, width, height, isBenchmark);
 			
 			stop = std::chrono::high_resolution_clock::now();
 		}
@@ -926,7 +907,7 @@ int main()
 			std::cout << "Using STL threads for parallelism.\n";
 			std::cout << "Generating the Mandelbrot set...\n";
 			start = std::chrono::high_resolution_clock::now();
-			drawMandelbrotMT(width, height, isBenchmark);	
+			drawMandelbrotMT(frameBuffer, width, height, isBenchmark);	
 			stop = std::chrono::high_resolution_clock::now();			
 		}
 	}		
@@ -940,11 +921,11 @@ int main()
 		if (useSIMD)
 		{	
 #if ISA_SSE
-				drawMandelbrotOMPSSE(width, height, isBenchmark, 1);
+				drawMandelbrotOMPSSE(frameBuffer, width, height, isBenchmark, 1);
 #elif ISA_AVX
-				drawMandelbrotOMPAVX(width, height, isBenchmark, 1);
+				drawMandelbrotOMPAVX(frameBuffer, width, height, isBenchmark, 1);
 #elif ISA_AVX512
-				drawMandelbrotOMPAVX512(width, height, isBenchmark, 1);
+				drawMandelbrotOMPAVX512(frameBuffer, width, height, isBenchmark, 1);
 #else
 				std::cerr << "Compilation error. Please specify the correct instruction set architecture "
                              "during compilation. Please see the documentation in the source file. Aborting..." << std::endl;
@@ -952,7 +933,7 @@ int main()
 #endif
 		}
 		else
-			drawMandelbrot(width, height, isBenchmark);
+			drawMandelbrot(frameBuffer, width, height, isBenchmark);
 		
 		stop = std::chrono::high_resolution_clock::now();
 	}
@@ -970,5 +951,6 @@ int main()
 	else
 		std::cout << "Time taken is " << (int)diffSec.count() << " seconds.\n";
 	
+	delete[] frameBuffer;
 	return 0;
 }
